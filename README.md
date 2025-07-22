@@ -2,7 +2,7 @@
 
 ### Application frontend repository
 
-This template should help get you started developing with Vue 3 in Vite.
+Job seekers often lose track of where and when they applied, forget to follow up, or fail to tailor their resume for each role. This results in missed opportunities, duplicated effort, and inefficient application strategies. Our project aims to streamline job tracking while providing AI-powered insights that help users focus their resume on the most relevant skills - without having AI write it for them.
 
 ## Recommended IDE Setup
 
