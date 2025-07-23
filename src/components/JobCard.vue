@@ -22,6 +22,7 @@ defineProps<{
     <div class="job-actions">
       <button>Show Job Description</button>
       <button>Analyze Job Description</button>
+      <button>Upload Resume</button>
       <button>Edit</button>
       <button>Interview Tracker</button>
     </div>
