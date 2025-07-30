@@ -10,23 +10,6 @@ const showUploadForm = ref(false)
 onMounted(() => {
   applicationStore.fetchApplications()
 })
-//! FOR INITIAL TESTING ONLY - REMOVE LATER:
-// const jobs = [
-//   {
-//     title: 'Software Engineer',
-//     company: 'Tech Corp',
-//     appliedOn: '2023-10-01',
-//     status: 'Applied',
-//     notes: 'Follow up next week',
-//   },
-//   {
-//     title: 'Frontend Developer',
-//     company: 'Web Solutions',
-//     appliedOn: '2023-10-05',
-//     status: 'Interview Scheduled',
-//     notes: 'Prepare for technical interview',
-//   },
-// ]
 </script>
 
 <template>
@@ -41,9 +24,9 @@ onMounted(() => {
     <div v-if="applicationStore.loading">Fetching your applications...</div>
     <div v-else-if="applicationStore.error">{{ applicationStore.error }}</div>
     <ApplicationCard
-      v-for="(application, index) in applicationStore.applications"
-      :key="application.id || index"
-      :job="application"
+      v-for="application in applicationStore.applications"
+      :key="application.id"
+      :applicationId="application.id"
     />
   </div>
   <ApplicationUploadForm v-if="showUploadForm" @close="showUploadForm = false" />
