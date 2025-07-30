@@ -4,6 +4,7 @@ import axios from 'axios'
 
 const emit = defineEmits(['close'])
 const form = ref({
+  user: { id: '' },
   title: '',
   company: '',
   appliedOn: '',
@@ -13,7 +14,8 @@ const form = ref({
 
 const submitApplication = async () => {
   try {
-    await axios.post('https://jobpilot-backend-62hx.onrender.com/jobs', form.value)
+    //! Change below back to deployed backend API route after testing
+    await axios.post('http://localhost:8080/jobs', form.value)
     emit('close')
   } catch (error) {
     console.error('Error submitting application: ', error)
@@ -31,6 +33,12 @@ const close = () => {
       <button class="close-button" @click="close">X</button>
       <h2>Add New Application</h2>
       <form @submit.prevent="submitApplication">
+        <div>
+          <!--TODO: REMOVE ID FIELD ONCE USER AUTH IS IMPLEMENTED -->
+          <!--! TESTING CURRENTLY REQUIRES ENTERING A USER ID MANUALLY-->
+          <label for="id">Your ID:</label>
+          <input type="number" v-model="form.user.id" required />
+        </div>
         <div>
           <label for="title">Job Title:</label>
           <input type="text" v-model="form.title" required />
