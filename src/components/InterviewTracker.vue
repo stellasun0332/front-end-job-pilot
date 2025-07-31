@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 
 const props = defineProps<{
-  aaplicationId: number
+  applicationId: number
   isVisible: boolean
 }>()
 const emit = defineEmits(['close'])
@@ -13,24 +13,53 @@ const application = computed(() =>
   applicationStore.applications.find((a) => a.id === props.applicationId),
 )
 const interview = computed(
-  () => application.value?.interview || { date: '', interviewer: '', notes: '' },
+  () =>
+    application.value?.interview || {
+      date: '',
+      interviewer: '',
+      prepNotes: '',
+    },
 )
 
 const editMode = ref(false)
-const editInterview = ref({ date: '', interviewer: '', notes: '' })
+const editInterview = ref({
+  job: { id: props.applicationId },
+  date: '',
+  interviewer: '',
+  prepNotes: '',
+})
 
-const saveInterview = () => {
-  applicationStore.saveInterview(props.applicationId, { ...editInterview.value })
-  editMode.value = false
+const saveInterview = async () => {
+  try {
+    console.log(editInterview.value)
+    await applicationStore.saveInterview(props.applicationId, {
+      ...editInterview.value,
+    })
+    editMode.value = false
+  } catch (err: any) {
+    console.error(err)
+  }
 }
 const cancelEdit = () => (editMode.value = false)
-
 watch(
   () => props.isVisible,
   (visible) => {
+    console.log('isVisible changed:', visible)
+  },
+)
+watch(
+  () => props.isVisible,
+  async (visible) => {
     if (visible) {
       editMode.value = false
-      editInterview.value = { ...interview.value }
+      await applicationStore.fetchInterviewInfo(props.applicationId)
+      console.log('value:', application.value)
+      editInterview.value = {
+        job: interview.value.job.id,
+        date: interview.value.date || '',
+        interviewer: interview.value.interviewer || '',
+        prepNotes: interview.value.prepNotes || '',
+      }
     }
   },
 )
@@ -45,7 +74,7 @@ const close = () => emit('close')
       <div v-if="!editMode">
         <p>Date: {{ interview.date || 'Not set' }}</p>
         <p>Interviewer: {{ interview.interviewer || 'Not set' }}</p>
-        <p>Prep Notes: {{ interview.notes || 'None' }}</p>
+        <p>Prep Notes: {{ interview.prepNotes || 'None' }}</p>
         <button @click="editMode = true">Edit Interview Info</button>
         <button @click="close">Close</button>
       </div>
@@ -59,7 +88,7 @@ const close = () => emit('close')
         <input type="text" v-model="editInterview.interviewer" id="interviewerName" />
 
         <p><label for="prepNotes">Prep Notes:</label></p>
-        <textarea v-model="editInterview.notes" id="prepNotes"></textarea>
+        <textarea v-model="editInterview.prepNotes" id="prepNotes"></textarea>
 
         <div class="modal-actions">
           <button @click="saveInterview">Save</button>

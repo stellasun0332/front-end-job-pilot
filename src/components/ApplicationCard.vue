@@ -32,9 +32,9 @@ const toggleInterviewTracker = () => {
     </div>
     <InterviewTracker
       v-if="showInterviewTracker"
-      @close="toggleInterviewTracker"
-      :applicationId="application?.id"
       :isVisible="showInterviewTracker"
+      :applicationId="application?.id"
+      @close="toggleInterviewTracker"
     />
   </div>
 </template>

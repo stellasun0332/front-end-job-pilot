@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'submitted'])
 const form = ref({
   user: { id: '' },
   title: '',
@@ -15,7 +15,9 @@ const form = ref({
 const submitApplication = async () => {
   try {
     //! Change below back to deployed backend API route after testing
-    await axios.post('http://localhost:8080/jobs', form.value)
+    console.log(form.value)
+    const response = await axios.post('http://localhost:8080/jobs', form.value)
+    emit('submitted', response.data)
     emit('close')
   } catch (error) {
     console.error('Error submitting application: ', error)

@@ -10,6 +10,13 @@ const showUploadForm = ref(false)
 onMounted(() => {
   applicationStore.fetchApplications()
 })
+
+const handleAppSubmission = (newApp) => {
+  applicationStore.addApplication({
+    ...newApp,
+    id: newApp.id ?? newApp._id,
+  })
+}
 </script>
 
 <template>
@@ -29,7 +36,11 @@ onMounted(() => {
       :applicationId="application.id"
     />
   </div>
-  <ApplicationUploadForm v-if="showUploadForm" @close="showUploadForm = false" />
+  <ApplicationUploadForm
+    v-if="showUploadForm"
+    @close="showUploadForm = false"
+    @submitted="handleAppSubmission"
+  />
 </template>
 
 <style scoped>
