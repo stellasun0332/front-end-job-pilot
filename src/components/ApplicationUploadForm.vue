@@ -7,7 +7,7 @@ const form = ref({
   user: { id: '' },
   title: '',
   company: '',
-  appliedOn: '',
+  dateApplied: '',
   status: 'Applied',
   notes: '',
 })
@@ -51,7 +51,7 @@ const close = () => {
         </div>
         <div>
           <label for="appliedOn">Applied On:</label>
-          <input type="date" v-model="form.appliedOn" required />
+          <input type="date" v-model="form.dateApplied" required />
         </div>
         <div>
           <label for="status">Status:</label>

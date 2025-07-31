@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useApplicationStore } from '@/stores/applicationStore'
 
 const props = defineProps<{
@@ -54,11 +54,15 @@ watch(
       editMode.value = false
       await applicationStore.fetchInterviewInfo(props.applicationId)
       console.log('value:', application.value)
+
+      await nextTick()
+
+      const interviewData = application.value?.interview
       editInterview.value = {
-        job: interview.value.job.id,
-        date: interview.value.date || '',
-        interviewer: interview.value.interviewer || '',
-        prepNotes: interview.value.prepNotes || '',
+        job: props.applicationId,
+        date: interviewData?.date || '',
+        interviewer: interviewData?.interviewer || '',
+        prepNotes: interviewData?.prepNotes || '',
       }
     }
   },

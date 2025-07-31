@@ -10,7 +10,10 @@ const application = computed(() =>
 )
 const showInterviewTracker = ref(false)
 const toggleInterviewTracker = () => {
+  console.log('Button clicked, curr state:', showInterviewTracker.value)
+  console.log('AppID:', props.applicationId)
   showInterviewTracker.value = !showInterviewTracker.value
+  console.log('New state:', showInterviewTracker.value)
 }
 </script>
 
@@ -19,7 +22,7 @@ const toggleInterviewTracker = () => {
     <div class="job-info">
       <strong>{{ application?.title }}</strong>
       <p>Company: {{ application?.company }}</p>
-      <p>Applied on: {{ application?.appliedOn }}</p>
+      <p>Applied on: {{ application?.dateApplied }}</p>
       <p>Status: {{ application?.status }}</p>
       <p>Notes: {{ application?.notes }}</p>
     </div>
@@ -31,7 +34,6 @@ const toggleInterviewTracker = () => {
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
     <InterviewTracker
-      v-if="showInterviewTracker"
       :isVisible="showInterviewTracker"
       :applicationId="application?.id"
       @close="toggleInterviewTracker"

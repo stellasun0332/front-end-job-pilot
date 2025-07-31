@@ -49,12 +49,12 @@ export const useApplicationStore = defineStore('application', {
         const response = await axios.get(`http://localhost:8080/interviews/${applicationId}`)
         const app = this.applications.find((a: any) => a.id === applicationId)
         if (app) {
-          const interview = response.data
+          const interviewData = response.data
           app.interview = {
-            job: { id: applicationId },
-            date: interview.date,
-            interviewer: interview.interviewer,
-            prepNotes: interview.prepNotes,
+            job: interviewData.job.id,
+            date: interviewData.date,
+            interviewer: interviewData.interviewer,
+            prepNotes: interviewData.prepNotes,
           }
         }
         return response.data
