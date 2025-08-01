@@ -37,11 +37,14 @@ const editInterview = ref<InterviewInfo>({
 const saveInterview = async () => {
   try {
     await applicationStore.saveInterview(props.applicationId, {
-      ...editInterview.value,
+      job: { id: props.applicationId },
+      date: editInterview.value.date,
+      interviewer: editInterview.value.interviewer,
+      prepNotes: editInterview.value.prepNotes,
     })
     editMode.value = false
-  } catch (err: any) {
-    console.error(err)
+  } catch (err: unknown) {
+    console.error('Error saving interview:', err)
   }
 }
 const cancelEdit = () => (editMode.value = false)

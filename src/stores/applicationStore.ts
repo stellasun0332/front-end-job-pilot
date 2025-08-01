@@ -3,9 +3,11 @@ import axios from 'axios'
 
 const JOBS = 'https://jobpilot-backend-62hx.onrender.com/jobs'
 const INTERVIEWS = 'https://jobpilot-backend-62hx.onrender.com/interviews'
+const JOBS_TEST = 'http://localhost:8080/jobs'
+const INTERVIEWS_TEST = 'http://localhost:8080/interviews'
 
 export type InterviewInfo = {
-  job: number
+  job: { id: number } | number
   date: string
   interviewer: string
   prepNotes: string
