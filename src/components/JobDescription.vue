@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { useApplicationStore } from '@/stores/applicationStore'
+import { useApplicationStore, type Application } from '@/stores/applicationStore'
 
 const props = defineProps<{
   applicationId: number
@@ -9,7 +9,7 @@ const props = defineProps<{
 const emit = defineEmits(['close'])
 
 const applicationStore = useApplicationStore()
-const application = computed(() =>
+const application = computed((): Application | undefined =>
   applicationStore.applications.find((a: any) => a.id === props.applicationId),
 )
 const jobDescription = computed(() => application.value?.jobDescription || 'None')

@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useApplicationStore } from '@/stores/applicationStore'
+import { useApplicationStore, type Application } from '@/stores/applicationStore'
 import { ref, computed } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
 
 const props = defineProps<{ applicationId: number }>()
 const applicationStore = useApplicationStore()
-const application = computed(() =>
-  applicationStore.applications.find((app) => app.id === props.applicationId),
+const application = computed((): Application | undefined =>
+  applicationStore.applications.find((app: Application) => app.id === props.applicationId),
 )
 const showInterviewTracker = ref(false)
 const showJobDescription = ref(false)
 const showEditApplication = ref(false)
 
-const editApplication = ref({
+const editApplication = ref<Partial<Application>>({
   title: '',
   company: '',
   dateApplied: '',
@@ -72,11 +72,13 @@ const cancelEdit = () => {
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
     <InterviewTracker
+      v-if="application"
       :isVisible="showInterviewTracker"
       :applicationId="application?.id"
       @close="toggleInterviewTracker"
     />
     <JobDescription
+      v-if="application"
       :isVisible="showJobDescription"
       :applicationId="application?.id"
       @close="toggleJobDescription"

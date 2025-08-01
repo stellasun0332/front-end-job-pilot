@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { useApplicationStore } from '@/stores/applicationStore'
+import {
+  useApplicationStore,
+  type Application,
+  type InterviewInfo,
+} from '@/stores/applicationStore'
 
 const props = defineProps<{
   applicationId: number
@@ -9,12 +13,13 @@ const props = defineProps<{
 const emit = defineEmits(['close'])
 
 const applicationStore = useApplicationStore()
-const application = computed(() =>
+const application = computed((): Application | undefined =>
   applicationStore.applications.find((a) => a.id === props.applicationId),
 )
 const interview = computed(
   () =>
     application.value?.interview || {
+      job: props.applicationId,
       date: '',
       interviewer: '',
       prepNotes: '',
@@ -22,8 +27,8 @@ const interview = computed(
 )
 
 const editMode = ref(false)
-const editInterview = ref({
-  job: { id: props.applicationId },
+const editInterview = ref<InterviewInfo>({
+  job: props.applicationId,
   date: '',
   interviewer: '',
   prepNotes: '',
@@ -51,7 +56,7 @@ watch(
 
       const interviewData = application.value?.interview
       editInterview.value = {
-        job: { id: props.applicationId },
+        job: props.applicationId,
         date: interviewData?.date || '',
         interviewer: interviewData?.interviewer || '',
         prepNotes: interviewData?.prepNotes || '',

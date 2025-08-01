@@ -21,12 +21,13 @@ export type Application = {
   dateApplied: string
   status: string
   notes: string
+  jobDescription?: string
   interview?: InterviewInfo
 }
 
 export const useApplicationStore = defineStore('application', {
   state: () => ({
-    applications: [],
+    applications: [] as Application[],
     loading: false,
     error: null as string | null,
   }),
