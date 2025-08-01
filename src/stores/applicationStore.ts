@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
+const JOBS = 'https://jobpilot-backend-62hx.onrender.com/jobs'
+const INTERVIEWS = 'https://jobpilot-backend-62hx.onrender.com/interviews'
+//! Remove below once testing is complete
+const JOBS_TEST = 'http://localhost:8080/jobs'
+const INTERVIEWS_TEST = 'http://localhost:8080/interviews'
+
 export type InterviewInfo = {
   job: number
   date: string
@@ -31,7 +37,7 @@ export const useApplicationStore = defineStore('application', {
       try {
         //TODO: UPDATE 'GET' TO USE DEPLOYED BACKEND API ROUTE AFTER TESTING
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
-        const response = await axios.get('https://jobpilot-backend-62hx.onrender.com/jobs')
+        const response = await axios.get(`${JOBS_TEST}`)
         this.applications = response.data.map((app: any) => ({
           ...app,
           id: app.id ?? app._id,
@@ -47,7 +53,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchAllInterviewData() {
       try {
-        const response = await axios.get('https://jobpilot-backend-62hx.onrender.com/interviews')
+        const response = await axios.get(`${INTERVIEWS_TEST}`)
         const interviews = response.data
 
         interviews.forEach((interview: any) => {
@@ -67,9 +73,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const response = await axios.get(
-          `https://jobpilot-backend-62hx.onrender.com/interviews/${applicationId}`,
-        )
+        const response = await axios.get(`${INTERVIEWS_TEST}/${applicationId}`)
         const app = this.applications.find((a: any) => a.id === applicationId)
         if (app) {
           const interviewData = response.data
@@ -88,7 +92,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/interviews', {
+        const response = await axios.post(`${INTERVIEWS_TEST}`, {
           applicationId,
           ...interview,
         })

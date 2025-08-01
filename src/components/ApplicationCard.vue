@@ -24,7 +24,7 @@ const toggleInterviewTracker = () => {
       <p>Notes: {{ application?.notes }}</p>
     </div>
     <div class="job-actions">
-      <button>Show Job Description</button>
+      <button>Job Description</button>
       <button>Analyze Job Description</button>
       <button>Upload Resume</button>
       <button>Edit</button>

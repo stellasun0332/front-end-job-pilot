@@ -7,6 +7,7 @@ const form = ref({
   user: { id: '' },
   title: '',
   company: '',
+  jobDescription: '',
   dateApplied: '',
   status: 'Applied',
   notes: '',
@@ -15,7 +16,7 @@ const form = ref({
 const submitApplication = async () => {
   try {
     //! Change below back to deployed backend API route after testing
-    const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/jobs', form.value)
+    const response = await axios.post('http://localhost:8080/jobs', form.value)
     emit('submitted', response.data)
     emit('close')
   } catch (error) {
@@ -47,6 +48,10 @@ const close = () => {
         <div>
           <label for="company">Company:</label>
           <input id="company" type="text" v-model="form.company" required />
+        </div>
+        <div>
+          <label for="jobDescription">Job Description</label>
+          <textarea id="jobDescription" v-model="form.jobDescription"></textarea>
         </div>
         <div>
           <label for="appliedOn">Applied On:</label>
