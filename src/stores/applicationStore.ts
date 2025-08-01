@@ -18,7 +18,7 @@ export type Application = {
   id: number
   title: string
   company: string
-  appliedOn: string
+  dateApplied: string
   status: string
   notes: string
   interview?: InterviewInfo
@@ -37,11 +37,15 @@ export const useApplicationStore = defineStore('application', {
       try {
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
         const response = await axios.get(`${JOBS_TEST}`)
-        this.applications = response.data.map((app: any) => ({
-          ...app,
-          id: app.id ?? app._id,
-          interview: null,
-        }))
+        this.applications = response.data
+          .map((app: any) => ({
+            ...app,
+            id: app.id ?? app._id,
+            interview: null,
+          }))
+          .sort((a, b) => {
+            return a.id - b.id
+          })
 
         await this.fetchAllInterviewData()
       } catch (err: any) {
@@ -119,6 +123,20 @@ export const useApplicationStore = defineStore('application', {
         return response.data
       } catch (err: any) {
         this.error = err.message || 'Failed to update job description'
+        throw err
+      }
+    },
+    async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
+      try {
+        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, updatedFields)
+        const app = this.applications.find((a: any) => a.id === applicationId)
+        if (app) {
+          Object.assign(app, updatedFields)
+        }
+
+        return response.data
+      } catch (err: any) {
+        this.error = err.message || 'Failed to update application'
         throw err
       }
     },
