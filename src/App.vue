@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useApplicationStore } from './stores/applicationStore'
+import { useApplicationStore, type Application } from './stores/applicationStore'
 import ApplicationCard from './components/ApplicationCard.vue'
 import ApplicationUploadForm from './components/ApplicationUploadForm.vue'
 
@@ -11,10 +11,10 @@ onMounted(() => {
   applicationStore.fetchApplications()
 })
 
-const handleAppSubmission = (newApp) => {
+const handleAppSubmission = (newApp: Application) => {
   applicationStore.addApplication({
     ...newApp,
-    id: newApp.id ?? newApp._id,
+    id: newApp.id,
   })
 }
 </script>
