@@ -32,7 +32,6 @@ const toggleJobDescription = () => {
     </div>
     <div class="job-actions">
       <button @click="toggleJobDescription">Job Description</button>
-      <button>Analyze Job Description</button>
       <button>Upload Resume</button>
       <button>Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
