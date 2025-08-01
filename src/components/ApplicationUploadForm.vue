@@ -15,7 +15,7 @@ const form = ref({
 
 const submitApplication = async () => {
   try {
-    const response = await axios.post('http://localhost:8080/jobs', form.value)
+    const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/jobs', form.value)
     emit('submitted', response.data)
     emit('close')
   } catch (error) {

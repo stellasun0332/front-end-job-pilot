@@ -3,8 +3,6 @@ import axios from 'axios'
 
 const JOBS = 'https://jobpilot-backend-62hx.onrender.com/jobs'
 const INTERVIEWS = 'https://jobpilot-backend-62hx.onrender.com/interviews'
-const JOBS_TEST = 'http://localhost:8080/jobs'
-const INTERVIEWS_TEST = 'http://localhost:8080/interviews'
 
 export type InterviewInfo = {
   job: { id: number } | number
@@ -36,7 +34,7 @@ export const useApplicationStore = defineStore('application', {
       this.error = null
       try {
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
-        const response = await axios.get(`${JOBS_TEST}`)
+        const response = await axios.get(`${JOBS}`)
         this.applications = response.data
           .map((app: Application) => ({
             ...app,
@@ -56,7 +54,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchAllInterviewData() {
       try {
-        const response = await axios.get(`${INTERVIEWS_TEST}`)
+        const response = await axios.get(`${INTERVIEWS}`)
         const interviews = response.data
 
         interviews.forEach((interview: any) => {
@@ -76,7 +74,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const response = await axios.get(`${INTERVIEWS_TEST}/${applicationId}`)
+        const response = await axios.get(`${INTERVIEWS}/${applicationId}`)
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           const interviewData = response.data
@@ -95,7 +93,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const response = await axios.post(`${INTERVIEWS_TEST}`, {
+        const response = await axios.post(`${INTERVIEWS}`, {
           applicationId,
           ...interview,
         })
@@ -111,7 +109,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateJobDescription(applicationId: number, jobDescription: string) {
       try {
-        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, {
+        const response = await axios.patch(`${JOBS}/${applicationId}`, {
           jobDescription,
         })
 
@@ -128,7 +126,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
       try {
-        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, updatedFields)
+        const response = await axios.patch(`${JOBS}/${applicationId}`, updatedFields)
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           Object.assign(app, updatedFields)
