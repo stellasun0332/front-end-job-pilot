@@ -10,10 +10,7 @@ const application = computed(() =>
 )
 const showInterviewTracker = ref(false)
 const toggleInterviewTracker = () => {
-  console.log('Button clicked, curr state:', showInterviewTracker.value)
-  console.log('AppID:', props.applicationId)
   showInterviewTracker.value = !showInterviewTracker.value
-  console.log('New state:', showInterviewTracker.value)
 }
 </script>
 

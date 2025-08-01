@@ -31,7 +31,6 @@ const editInterview = ref({
 
 const saveInterview = async () => {
   try {
-    console.log(editInterview.value)
     await applicationStore.saveInterview(props.applicationId, {
       ...editInterview.value,
     })
@@ -41,25 +40,18 @@ const saveInterview = async () => {
   }
 }
 const cancelEdit = () => (editMode.value = false)
-watch(
-  () => props.isVisible,
-  (visible) => {
-    console.log('isVisible changed:', visible)
-  },
-)
+
 watch(
   () => props.isVisible,
   async (visible) => {
     if (visible) {
       editMode.value = false
-      await applicationStore.fetchInterviewInfo(props.applicationId)
-      console.log('value:', application.value)
 
       await nextTick()
 
       const interviewData = application.value?.interview
       editInterview.value = {
-        job: props.applicationId,
+        job: { id: props.applicationId },
         date: interviewData?.date || '',
         interviewer: interviewData?.interviewer || '',
         prepNotes: interviewData?.prepNotes || '',

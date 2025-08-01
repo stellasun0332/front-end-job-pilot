@@ -15,8 +15,7 @@ const form = ref({
 const submitApplication = async () => {
   try {
     //! Change below back to deployed backend API route after testing
-    console.log(form.value)
-    const response = await axios.post('http://localhost:8080/jobs', form.value)
+    const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/jobs', form.value)
     emit('submitted', response.data)
     emit('close')
   } catch (error) {
@@ -39,23 +38,23 @@ const close = () => {
           <!--TODO: REMOVE ID FIELD ONCE USER AUTH IS IMPLEMENTED -->
           <!--! TESTING CURRENTLY REQUIRES ENTERING A USER ID MANUALLY-->
           <label for="id">Your ID:</label>
-          <input type="number" v-model="form.user.id" required />
+          <input id="id" type="number" v-model="form.user.id" required />
         </div>
         <div>
           <label for="title">Job Title:</label>
-          <input type="text" v-model="form.title" required />
+          <input id="title" type="text" v-model="form.title" required />
         </div>
         <div>
           <label for="company">Company:</label>
-          <input type="text" v-model="form.company" required />
+          <input id="company" type="text" v-model="form.company" required />
         </div>
         <div>
           <label for="appliedOn">Applied On:</label>
-          <input type="date" v-model="form.dateApplied" required />
+          <input id="appliedOn" type="date" v-model="form.dateApplied" required />
         </div>
         <div>
           <label for="status">Status:</label>
-          <select v-model="form.status" required>
+          <select id="status" v-model="form.status" required>
             <option value="Applied">Applied</option>
             <option value="Interview Scheduled">Interview Scheduled</option>
             <option value="Rejected">Rejected</option>
@@ -64,7 +63,7 @@ const close = () => {
         </div>
         <div>
           <label for="notes">Notes:</label>
-          <textarea v-model="form.notes"></textarea>
+          <textarea id="notes" v-model="form.notes"></textarea>
         </div>
         <button type="submit">Save</button>
       </form>

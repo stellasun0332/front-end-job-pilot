@@ -31,22 +31,45 @@ export const useApplicationStore = defineStore('application', {
       try {
         //TODO: UPDATE 'GET' TO USE DEPLOYED BACKEND API ROUTE AFTER TESTING
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
-        const response = await axios.get('http://localhost:8080/jobs')
-        console.log('Api response:', response.data)
+        const response = await axios.get('https://jobpilot-backend-62hx.onrender.com/jobs')
         this.applications = response.data.map((app: any) => ({
           ...app,
           id: app.id ?? app._id,
-          interview: app.interview,
+          interview: null,
         }))
+
+        await this.fetchAllInterviewData()
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch applications'
       } finally {
         this.loading = false
       }
     },
+    async fetchAllInterviewData() {
+      try {
+        const response = await axios.get('https://jobpilot-backend-62hx.onrender.com/interviews')
+        const interviews = response.data
+
+        interviews.forEach((interview: any) => {
+          const app = this.applications.find((a: any) => a.id === interview.job.id)
+          if (app) {
+            app.interview = {
+              job: interview.job?.id || interview.applicationId,
+              date: interview.date,
+              interviewer: interview.interviewer,
+              prepNotes: interview.prepNotes,
+            }
+          }
+        })
+      } catch (err: any) {
+        console.error('No interviews found or error fetching interviews:', err.message)
+      }
+    },
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const response = await axios.get(`http://localhost:8080/interviews/${applicationId}`)
+        const response = await axios.get(
+          `https://jobpilot-backend-62hx.onrender.com/interviews/${applicationId}`,
+        )
         const app = this.applications.find((a: any) => a.id === applicationId)
         if (app) {
           const interviewData = response.data
@@ -65,7 +88,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const response = await axios.post('http://localhost:8080/interviews', {
+        const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/interviews', {
           applicationId,
           ...interview,
         })
