@@ -106,6 +106,23 @@ export const useApplicationStore = defineStore('application', {
         this.error = err.message || 'Failed to save interview'
       }
     },
+    async updateJobDescription(applicationId: number, jobDescription: string) {
+      try {
+        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, {
+          jobDescription,
+        })
+
+        const app = this.applications.find((a: any) => a.id === applicationId)
+        if (app) {
+          app.jobDescription = jobDescription
+        }
+
+        return response.data
+      } catch (err: any) {
+        this.error = err.message || 'Failed to update job description'
+        throw err
+      }
+    },
     addApplication(application: Application) {
       this.applications.push(application)
     },
