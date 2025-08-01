@@ -14,7 +14,6 @@ const form = ref({
 
 const submitApplication = async () => {
   try {
-    //! Change below back to deployed backend API route after testing
     const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/jobs', form.value)
     emit('submitted', response.data)
     emit('close')
