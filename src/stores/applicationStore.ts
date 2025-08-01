@@ -18,7 +18,7 @@ export type Application = {
   id: number
   title: string
   company: string
-  appliedOn: string
+  dateApplied: string
   status: string
   notes: string
   interview?: InterviewInfo
@@ -38,11 +38,15 @@ export const useApplicationStore = defineStore('application', {
         //TODO: UPDATE 'GET' TO USE DEPLOYED BACKEND API ROUTE AFTER TESTING
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
         const response = await axios.get(`${JOBS_TEST}`)
-        this.applications = response.data.map((app: any) => ({
-          ...app,
-          id: app.id ?? app._id,
-          interview: null,
-        }))
+        this.applications = response.data
+          .map((app: any) => ({
+            ...app,
+            id: app.id ?? app._id,
+            interview: null,
+          }))
+          .sort((a, b) => {
+            return a.id - b.id
+          })
 
         await this.fetchAllInterviewData()
       } catch (err: any) {
