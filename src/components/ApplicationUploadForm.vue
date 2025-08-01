@@ -7,6 +7,7 @@ const form = ref({
   user: { id: '' },
   title: '',
   company: '',
+  jobDescription: '',
   dateApplied: '',
   status: 'Applied',
   notes: '',
@@ -46,6 +47,10 @@ const close = () => {
         <div>
           <label for="company">Company:</label>
           <input id="company" type="text" v-model="form.company" required />
+        </div>
+        <div>
+          <label for="jobDescription">Job Description</label>
+          <textarea id="jobDescription" v-model="form.jobDescription"></textarea>
         </div>
         <div>
           <label for="appliedOn">Applied On:</label>

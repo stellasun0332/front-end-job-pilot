@@ -2,6 +2,7 @@
 import { useApplicationStore } from '@/stores/applicationStore'
 import { ref, computed } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
+import JobDescription from './JobDescription.vue'
 
 const props = defineProps<{ applicationId: number }>()
 const applicationStore = useApplicationStore()
@@ -9,8 +10,14 @@ const application = computed(() =>
   applicationStore.applications.find((app) => app.id === props.applicationId),
 )
 const showInterviewTracker = ref(false)
+const showJobDescription = ref(false)
+
 const toggleInterviewTracker = () => {
   showInterviewTracker.value = !showInterviewTracker.value
+}
+
+const toggleJobDescription = () => {
+  showJobDescription.value = !showJobDescription.value
 }
 </script>
 
@@ -24,8 +31,7 @@ const toggleInterviewTracker = () => {
       <p>Notes: {{ application?.notes }}</p>
     </div>
     <div class="job-actions">
-      <button>Show Job Description</button>
-      <button>Analyze Job Description</button>
+      <button @click="toggleJobDescription">Job Description</button>
       <button>Upload Resume</button>
       <button>Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
@@ -34,6 +40,11 @@ const toggleInterviewTracker = () => {
       :isVisible="showInterviewTracker"
       :applicationId="application?.id"
       @close="toggleInterviewTracker"
+    />
+    <JobDescription
+      :isVisible="showJobDescription"
+      :applicationId="application?.id"
+      @close="toggleJobDescription"
     />
   </div>
 </template>
