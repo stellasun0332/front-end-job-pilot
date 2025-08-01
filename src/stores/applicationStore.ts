@@ -37,7 +37,7 @@ export const useApplicationStore = defineStore('application', {
       this.error = null
       try {
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
-        const response = await axios.get(`${JOBS}`)
+        const response = await axios.get(`${JOBS_TEST}`)
         this.applications = response.data
           .map((app: Application) => ({
             ...app,
@@ -57,7 +57,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchAllInterviewData() {
       try {
-        const response = await axios.get(`${INTERVIEWS}`)
+        const response = await axios.get(`${INTERVIEWS_TEST}`)
         const interviews = response.data
 
         interviews.forEach((interview: any) => {
@@ -77,7 +77,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const response = await axios.get(`${INTERVIEWS}/${applicationId}`)
+        const response = await axios.get(`${INTERVIEWS_TEST}/${applicationId}`)
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           const interviewData = response.data
@@ -96,7 +96,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const response = await axios.post(`${INTERVIEWS}`, {
+        const response = await axios.post(`${INTERVIEWS_TEST}`, {
           applicationId,
           ...interview,
         })
@@ -112,7 +112,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateJobDescription(applicationId: number, jobDescription: string) {
       try {
-        const response = await axios.patch(`${JOBS}/${applicationId}`, {
+        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, {
           jobDescription,
         })
 
@@ -129,7 +129,7 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
       try {
-        const response = await axios.patch(`${JOBS}/${applicationId}`, updatedFields)
+        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, updatedFields)
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           Object.assign(app, updatedFields)
