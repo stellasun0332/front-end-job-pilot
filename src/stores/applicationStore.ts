@@ -123,6 +123,20 @@ export const useApplicationStore = defineStore('application', {
         throw err
       }
     },
+    async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
+      try {
+        const response = await axios.patch(`${JOBS_TEST}/${applicationId}`, updatedFields)
+        const app = this.applications.find((a: any) => a.id === applicationId)
+        if (app) {
+          Object.assign(app, updatedFields)
+        }
+
+        return response.data
+      } catch (err: any) {
+        this.error = err.message || 'Failed to update application'
+        throw err
+      }
+    },
     addApplication(application: Application) {
       this.applications.push(application)
     },
