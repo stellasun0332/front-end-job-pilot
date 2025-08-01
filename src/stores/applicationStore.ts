@@ -35,7 +35,6 @@ export const useApplicationStore = defineStore('application', {
       this.loading = true
       this.error = null
       try {
-        //TODO: UPDATE 'GET' TO USE DEPLOYED BACKEND API ROUTE AFTER TESTING
         //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
         const response = await axios.get(`${JOBS_TEST}`)
         this.applications = response.data.map((app: any) => ({
