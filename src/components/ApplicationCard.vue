@@ -145,6 +145,20 @@ const cancelEdit = () => {
   flex-wrap: wrap;
   gap: 10px;
 }
+
+.job-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #007bff;
+  color: white;
+}
+
+.job-actions button:hover {
+  background-color: #0056b3;
+}
 .edit-overlay {
   position: fixed;
   top: 0;

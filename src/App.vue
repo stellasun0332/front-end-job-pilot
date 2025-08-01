@@ -53,6 +53,20 @@ header {
   gap: 10px;
   margin-bottom: 30px;
 }
+
+.top-button button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #007bff;
+  color: white;
+}
+
+.top-button button:hover {
+  background-color: #0056b3;
+}
 .application-list {
   display: flex;
   flex-direction: column;

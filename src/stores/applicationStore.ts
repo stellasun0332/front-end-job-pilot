@@ -3,9 +3,6 @@ import axios from 'axios'
 
 const JOBS = 'https://jobpilot-backend-62hx.onrender.com/jobs'
 const INTERVIEWS = 'https://jobpilot-backend-62hx.onrender.com/interviews'
-//! Remove below once testing is complete
-const JOBS_TEST = 'http://localhost:8080/jobs'
-const INTERVIEWS_TEST = 'http://localhost:8080/interviews'
 
 export type InterviewInfo = {
   job: number
