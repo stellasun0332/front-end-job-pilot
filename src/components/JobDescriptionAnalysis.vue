@@ -18,7 +18,7 @@ const analyzeJobDescription = async () => {
   analysisResult.value = ''
 
   try {
-    const response = await axios.post('/api/jd/analyze', {
+    const response = await axios.post('https://jobpilot-backend-62hx.onrender.com/api/jd/analyze', {
       jobId: props.applicationId,
     })
     analysisResult.value = response.data
