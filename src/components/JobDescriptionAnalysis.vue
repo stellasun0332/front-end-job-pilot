@@ -29,7 +29,7 @@ const parsedAnalysis = computed((): AnalysisData | null => {
         : analysisResult.value
 
     return {
-      summary: data.summary || '',
+      summary: data.oneSentenceSummary || '',
       keywords: data.keywords || [],
       hardSkills: data.hardSkills || [],
       softSkills: data.softSkills || [],
