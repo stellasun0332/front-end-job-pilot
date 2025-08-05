@@ -10,7 +10,7 @@ const emit = defineEmits(['close'])
 
 interface AnalysisData {
   summary: string
-  keywords: string
+  keywords: string[]
   hardSkills: string[]
   softSkills: string[]
 }
