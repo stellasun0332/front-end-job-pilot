@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useApplicationStore, type Application } from '@/stores/applicationStore'
+import JobDescriptionAnalysis from './JobDescriptionAnalysis.vue'
 
 const props = defineProps<{
   applicationId: number
@@ -16,6 +17,7 @@ const jobDescription = computed(() => application.value?.jobDescription || 'None
 
 const editMode = ref(false)
 const editDescription = ref('')
+const showAnalysis = ref(false)
 
 const saveDescription = async () => {
   try {
@@ -48,9 +50,12 @@ watch(
 )
 
 const close = () => emit('close')
+
 const analyzeDescription = () => {
-  //TODO: Implement AI analysis feature
-  console.log('AI job description analyzer coming soon!')
+  showAnalysis.value = true
+}
+const closeAnalysis = () => {
+  showAnalysis.value = false
 }
 </script>
 
@@ -84,6 +89,13 @@ const analyzeDescription = () => {
         </div>
       </div>
     </div>
+
+    <!-- JD Analyzer -->
+    <jobDescriptionAnalysis
+      :applicationId="props.applicationId"
+      :isVisible="showAnalysis"
+      @close="closeAnalysis"
+    />
   </div>
 </template>
 
