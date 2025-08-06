@@ -21,6 +21,43 @@ const editApplication = ref<Partial<Application>>({
   notes: '',
 })
 
+const interviewReminder = computed(() => {
+  if (!application.value || application.value.status !== 'Interview Scheduled') {
+    return null
+  }
+  const interviewDate = application.value.interview?.date
+  if (!interviewDate) {
+    return null
+  }
+
+  const today = new Date()
+  const todayString =
+    today.getFullYear() +
+    '-' +
+    String(today.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(today.getDate()).padStart(2, '0')
+
+  const interviewDateString = interviewDate
+
+  if (interviewDateString < todayString) {
+    return { message: 'Interview date has passed', isPast: true }
+  } else if (interviewDateString === todayString) {
+    return { message: 'Interview is today!', isToday: true }
+  } else {
+    const todayDate = new Date(todayString)
+    const interviewDateObj = new Date(interviewDateString)
+    const timeDiff = interviewDateObj.getTime() - todayDate.getTime()
+    const daysDiff = Math.round(timeDiff / (1000 * 3600 * 24))
+
+    if (daysDiff === 1) {
+      return { message: 'Interview is tomorrow!', isSoon: true }
+    } else {
+      return { message: `Interview in ${daysDiff} days`, dayCount: daysDiff }
+    }
+  }
+})
+
 const toggleInterviewTracker = () => {
   showInterviewTracker.value = !showInterviewTracker.value
 }
@@ -59,6 +96,18 @@ const cancelEdit = () => {
 <template>
   <div class="job-card">
     <div class="job-info">
+      <!-- Reminder Notification -->
+      <div
+        v-if="interviewReminder"
+        class="interview-reminder"
+        :class="{
+          'reminder-past': interviewReminder.isPast,
+          'reminder-today': interviewReminder.isToday,
+          'reminder-soon': interviewReminder.isSoon,
+        }"
+      >
+        📅 {{ interviewReminder.message }}
+      </div>
       <strong>{{ application?.title }}</strong>
       <p>Company: {{ application?.company }}</p>
       <p>Applied on: {{ application?.dateApplied }}</p>
@@ -139,13 +188,45 @@ const cancelEdit = () => {
   margin-bottom: 20px;
   box-sizing: border-box;
 }
+.interview-reminder {
+  background: #007bff;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 0.8em;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.reminder-past {
+  background: #dc3545;
+}
+.reminder-today {
+  background: #fd7e14;
+  animation: pulse 2s infinite;
+}
+.reminder-soon {
+  background: #ffc107;
+  color: #000000;
+}
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
 .job-actions {
   margin-top: 15px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
-
 .job-actions button {
   padding: 8px 16px;
   border: none;
@@ -155,7 +236,6 @@ const cancelEdit = () => {
   background-color: #007bff;
   color: white;
 }
-
 .job-actions button:hover {
   background-color: #0056b3;
 }
