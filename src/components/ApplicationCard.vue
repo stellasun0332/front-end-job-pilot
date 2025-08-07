@@ -3,6 +3,7 @@ import { useApplicationStore, type Application } from '@/stores/applicationStore
 import { ref, computed } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
+import ResumeUploadForm from './ResumeUploadForm.vue'
 
 const props = defineProps<{ applicationId: number }>()
 const applicationStore = useApplicationStore()
@@ -12,6 +13,7 @@ const application = computed((): Application | undefined =>
 const showInterviewTracker = ref(false)
 const showJobDescription = ref(false)
 const showEditApplication = ref(false)
+const showResumeUpload = ref(false)
 
 const editApplication = ref<Partial<Application>>({
   title: '',
@@ -79,6 +81,10 @@ const toggleEditApplication = () => {
   showEditApplication.value = !showEditApplication.value
 }
 
+const toggleResumeUpload = () => {
+  showResumeUpload.value = !showResumeUpload.value
+}
+
 const saveEdit = async () => {
   try {
     await applicationStore.updateApplication(props.applicationId, editApplication.value)
@@ -113,10 +119,15 @@ const cancelEdit = () => {
       <p>Applied on: {{ application?.dateApplied }}</p>
       <p>Status: {{ application?.status }}</p>
       <p>Notes: {{ application?.notes }}</p>
+      <div v-if="application?.resumeUrl" class="resume-link">
+        <a :href="application.resumeUrl" target="_blank" class="download-resume">
+          Download Resume
+        </a>
+      </div>
     </div>
     <div class="job-actions">
       <button @click="toggleJobDescription">Job Description</button>
-      <button>Upload Resume</button>
+      <button @click="toggleResumeUpload">Upload Resume</button>
       <button @click="toggleEditApplication">Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
@@ -131,6 +142,12 @@ const cancelEdit = () => {
       :isVisible="showJobDescription"
       :applicationId="application?.id"
       @close="toggleJobDescription"
+    />
+    <ResumeUploadForm
+      v-if="application"
+      :isVisible="showResumeUpload"
+      :applicationId="application?.id"
+      @close="toggleResumeUpload"
     />
     <!-- Edit View -->
     <div v-if="showEditApplication" class="edit-overlay">
@@ -220,6 +237,22 @@ const cancelEdit = () => {
   100% {
     opacity: 1;
   }
+}
+.resume-link {
+  margin-top: 10px;
+}
+.download-resume {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.download-resume:hover {
+  background-color: #218838;
 }
 .job-actions {
   margin-top: 15px;
