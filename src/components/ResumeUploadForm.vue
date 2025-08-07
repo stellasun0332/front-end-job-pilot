@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import { ref, computed, type App } from 'vue'
 import { useApplicationStore, type Application } from '@/stores/applicationStore'
 
@@ -49,6 +49,16 @@ const handleFileSelect = (event: Event) => {
   }
 }
 
+const handleDrop = (event: DragEvent) => {
+  event.preventDefault()
+  isDragOver.value = false
+
+  const file = event.dataTransfer?.files[0]
+  if (file && validateFile(file)) {
+    selectedFile.value = file
+  }
+}
+
 const clearFile = () => {
   selectedFile.value = null
   if (fileInput.value) {
@@ -67,7 +77,7 @@ const uploadResume = async () => {
     formData.append('file', selectedFile.value)
     formData.append('jobId', props.applicationId.toString())
 
-    const response = await fetch('/resumes/upload', {
+    const response = await fetch('https://jobpilot-backend-62hx.onrender.com/resumes/upload', {
       method: 'POST',
       body: formData,
     })
@@ -83,6 +93,7 @@ const uploadResume = async () => {
 
     close()
   } catch (error: any) {
+    console.log(error)
     uploadError.value = 'Failed to upload resume. Please try again.'
   } finally {
     isUploading.value = false
