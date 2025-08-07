@@ -20,6 +20,7 @@ export type Application = {
   notes: string
   jobDescription?: string
   interview?: InterviewInfo
+  resumeUrl?: string
 }
 
 export const useApplicationStore = defineStore('application', {
