@@ -105,7 +105,7 @@ const downloadResume = async () => {
   }
 
   try {
-    const response = await fetch(`/api/resumes/download?jobId=${application.value.id}`)
+    const response = await fetch(`/resumes/download?jobId=${application.value.id}`)
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
