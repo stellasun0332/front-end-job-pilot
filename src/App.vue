@@ -24,7 +24,6 @@ const closeAuth = () => {
 }
 const onLogout = () => {
   auth.logout()
-  openAuth('login')
 }
 
 // Dialogs
@@ -43,8 +42,6 @@ onMounted(async () => {
     applicationStore.applications.forEach((app: any) => {
       if (app?.resumeFile) jobsWithResume.add(app.id)
     })
-  } else {
-    openAuth('login')
   }
 })
 

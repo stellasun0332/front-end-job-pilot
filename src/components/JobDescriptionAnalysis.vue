@@ -140,130 +140,206 @@ watch(
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1001;
+  z-index: 2000;
 }
 
 .analysis-modal {
-  background: rgb(70, 68, 68);
-  padding: 20px;
-  border-radius: 8px;
-  width: 600px;
-  max-width: 90vw;
-  max-height: 80vh;
+  width: 700px;
+  max-width: 94vw;
+  max-height: 88vh;
   overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  color: white;
+  display: flex;
+  flex-direction: column;
+  background: #171b22;
+  color: #eaf0ff;
+  border: 1px solid #2a2f3a;
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  padding: 16px;
 }
 
 .analysis-modal h2 {
-  margin-bottom: 20px;
+  margin: 0 0 10px 0;
+  padding: 2px 4px 10px;
+  border-bottom: 1px solid #262c36;
+  font-size: 18px;
+  font-weight: 850;
+  color: #fff;
   text-align: center;
 }
 
 .loading-content {
   text-align: center;
   padding: 40px 20px;
+  position: relative;
+}
+
+.loading-content::before {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border: 3px solid #313848;
+  border-top: 3px solid #5aa3ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+  display: block;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-content p {
-  font-size: 16px;
-  color: #ccc;
+  font-size: 14px;
+  color: #9fb0d0;
+  margin: 0;
 }
 
 .error-content {
   text-align: center;
-  padding: 20px;
+  padding: 40px 20px;
 }
 
 .error-content p {
-  color: #ff6b6b;
-  font-weight: bold;
+  color: #ff8e8e;
+  font-weight: 500;
+  margin: 0;
+  font-size: 14px;
 }
 
 .analysis-content {
-  margin-bottom: 20px;
+  padding: 10px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .analysis-section {
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.analysis-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
 }
 
 .analysis-section h3 {
-  margin: 0 0 15px 0;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: bold;
+  margin: 0 0 12px 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .summary-content {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 5px;
-  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  border-radius: 10px;
+  line-height: 1.55;
+  border: 1px solid #313848;
+  border-left: 4px solid #5aa3ff;
 }
 
 .summary-content p {
   margin: 0;
+  color: #eef3ff;
 }
 
 .skills-list {
-  list-style-type: disc;
-  padding-left: 20px;
+  list-style: none;
+  padding: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .skills-list li {
-  margin-bottom: 8px;
-  line-height: 1.4;
-  color: #f0f0f0;
+  background: #1e2430;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #eef3ff;
+  border: 1px solid #313848;
+  transition: all 0.25s ease;
+}
+
+.skills-list li:hover {
+  background: #242a35;
+  border-color: #4a90e2;
+  transform: translateY(-1px);
 }
 
 .modal-actions {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding-top: 15px;
+  justify-content: center;
+  padding: 8px 4px 4px;
+  border-top: 1px solid #262c36;
+  margin-top: 6px;
 }
 
 .modal-actions button {
   padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: 12px;
+  font-weight: 800;
   font-size: 14px;
-  background-color: #6c757d;
-  color: white;
+  line-height: 1.1;
+  border: 1px solid #343b47;
+  cursor: pointer;
+  transition:
+    transform 0.05s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
+  min-height: 40px;
+  background: #242a35;
+  color: #eaf0ff;
 }
 
 .modal-actions button:hover {
-  background-color: #545b62;
+  transform: translateY(-1px);
+  border-color: #4a90e2;
 }
 
-@media (max-width: 768px) {
+.modal-actions button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
   .analysis-modal {
-    width: 95vw;
-    padding: 15px;
+    width: 92vw;
+    padding: 14px;
   }
 
-  .analysis-section h3 {
+  .analysis-modal h2 {
     font-size: 16px;
   }
 
+  .analysis-section {
+    padding: 12px;
+  }
+
+  .analysis-section h3 {
+    font-size: 14px;
+  }
+
   .skills-list {
-    padding-left: 15px;
+    gap: 6px;
+  }
+
+  .skills-list li {
+    font-size: 11px;
+    padding: 5px 10px;
   }
 }
 </style>
