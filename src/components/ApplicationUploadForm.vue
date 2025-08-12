@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
-
 const emit = defineEmits<{ (e: 'close'): void; (e: 'submitted', job: any): void }>()
 
+const auth = useAuthStore()
+const isAuthed = computed(() => !!auth.user && !!auth.token)
+
 const form = ref({
-  user: { id: '' },
+  user: { id: '' }, // 会在提交前用 auth.user.id 自动填充
   title: '',
   company: '',
   jobDescription: '',
@@ -21,18 +24,27 @@ const errorMsg = ref('')
 
 async function submitApplication() {
   errorMsg.value = ''
+  if (!isAuthed.value) {
+    errorMsg.value = 'Please log in before creating an application.'
+    return
+  }
+
+  // 用登录用户的 ID 覆盖
+  form.value.user.id = String(auth.user!.id)
+
   submitting.value = true
   try {
     const resp = await axios.post(`${API_BASE}/jobs`, form.value)
     emit('submitted', resp.data)
     emit('close')
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
-    errorMsg.value = e instanceof Error ? e.message : 'Failed to submit application.'
+    errorMsg.value = e?.response?.data || e?.message || 'Failed to submit application.'
   } finally {
     submitting.value = false
   }
 }
+
 function close() {
   emit('close')
 }
@@ -44,10 +56,7 @@ function close() {
       <h2>Add New Application</h2>
 
       <form @submit.prevent="submitApplication">
-        <div class="form-group">
-          <label for="id">Your ID:</label>
-          <input id="id" type="number" v-model="form.user.id" required />
-        </div>
+        <!-- 已移除 Your ID 输入框；ID 将使用当前登录用户 -->
 
         <div class="form-group">
           <label for="title">Job Title:</label>
@@ -84,10 +93,13 @@ function close() {
           <textarea id="notes" v-model="form.notes" rows="4"></textarea>
         </div>
 
-        <p v-if="errorMsg" style="color: #ff6b6b">{{ errorMsg }}</p>
+        <p v-if="!isAuthed" class="hint">
+          You are not logged in. Please log in to create an application.
+        </p>
+        <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
 
         <div class="modal-actions">
-          <button type="submit" :disabled="submitting">
+          <button type="submit" :disabled="submitting || !isAuthed">
             {{ submitting ? 'Saving...' : 'Save' }}
           </button>
           <button type="button" @click="close" :disabled="submitting">Cancel</button>
@@ -142,6 +154,14 @@ function close() {
 }
 .form-group textarea {
   resize: vertical;
+}
+.hint {
+  color: #ffd166;
+  margin: 8px 0;
+}
+.error {
+  color: #ff6b6b;
+  margin: 8px 0;
 }
 .modal-actions {
   display: flex;
