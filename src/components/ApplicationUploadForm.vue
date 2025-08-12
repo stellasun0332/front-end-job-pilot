@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -10,7 +10,7 @@ const auth = useAuthStore()
 const isAuthed = computed(() => !!auth.user && !!auth.token)
 
 const form = ref({
-  user: { id: '' }, // 会在提交前用 auth.user.id 自动填充
+  user: { id: '' }, // 提交前用 auth.user.id 自动填充
   title: '',
   company: '',
   jobDescription: '',
@@ -36,7 +36,7 @@ async function submitApplication() {
   try {
     const resp = await axios.post(`${API_BASE}/jobs`, form.value)
     emit('submitted', resp.data)
-    emit('close')
+    close()
   } catch (e: any) {
     console.error(e)
     errorMsg.value = e?.response?.data || e?.message || 'Failed to submit application.'
@@ -46,142 +46,254 @@ async function submitApplication() {
 }
 
 function close() {
+  document.body.style.overflow = ''
   emit('close')
 }
+
+/* 组件通过 v-if 显示：挂载即锁滚动，卸载恢复 */
+watch(
+  () => true,
+  () => {
+    document.body.style.overflow = 'hidden'
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
+})
 </script>
 
 <template>
-  <div class="overlay" @click="close">
-    <div class="upload-form" @click.stop>
-      <h2>Add New Application</h2>
+  <!-- Teleport：把弹窗放到 body 顶层，避免被父级 transform 限制 -->
+  <teleport to="body">
+    <div class="au-overlay" @click.self="close" @keydown.esc="close" tabindex="0">
+      <div class="au-modal" @click.stop>
+        <header class="au-header">
+          <h2>Add New Application</h2>
+          <button class="icon-btn" aria-label="Close" @click="close">✕</button>
+        </header>
 
-      <form @submit.prevent="submitApplication">
-        <!-- 已移除 Your ID 输入框；ID 将使用当前登录用户 -->
+        <form class="au-body" @submit.prevent="submitApplication">
+          <div class="form-row">
+            <label for="title">Job Title</label>
+            <input id="title" type="text" v-model="form.title" required />
+          </div>
 
-        <div class="form-group">
-          <label for="title">Job Title:</label>
-          <input id="title" type="text" v-model="form.title" required />
-        </div>
+          <div class="form-row">
+            <label for="company">Company</label>
+            <input id="company" type="text" v-model="form.company" required />
+          </div>
 
-        <div class="form-group">
-          <label for="company">Company:</label>
-          <input id="company" type="text" v-model="form.company" required />
-        </div>
+          <div class="form-row">
+            <label for="jobDescription">Job Description</label>
+            <textarea id="jobDescription" v-model="form.jobDescription" rows="6"></textarea>
+          </div>
 
-        <div class="form-group">
-          <label for="jobDescription">Job Description</label>
-          <textarea id="jobDescription" v-model="form.jobDescription" rows="4"></textarea>
-        </div>
+          <div class="grid-2">
+            <div class="form-row">
+              <label for="appliedOn">Applied On</label>
+              <input id="appliedOn" type="date" v-model="form.dateApplied" required />
+            </div>
 
-        <div class="form-group">
-          <label for="appliedOn">Applied On:</label>
-          <input id="appliedOn" type="date" v-model="form.dateApplied" required />
-        </div>
+            <div class="form-row">
+              <label for="status">Status</label>
+              <select id="status" v-model="form.status" required>
+                <option value="Applied">Applied</option>
+                <option value="Interview Scheduled">Interview Scheduled</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Offer Received">Offer Received</option>
+              </select>
+            </div>
+          </div>
 
-        <div class="form-group">
-          <label for="status">Status:</label>
-          <select id="status" v-model="form.status" required>
-            <option value="Applied">Applied</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Offer Received">Offer Received</option>
-          </select>
-        </div>
+          <div class="form-row">
+            <label for="notes">Notes</label>
+            <textarea id="notes" v-model="form.notes" rows="4"></textarea>
+          </div>
 
-        <div class="form-group">
-          <label for="notes">Notes:</label>
-          <textarea id="notes" v-model="form.notes" rows="4"></textarea>
-        </div>
+          <p v-if="!isAuthed" class="hint">
+            You are not logged in. Please log in to create an application.
+          </p>
+          <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
 
-        <p v-if="!isAuthed" class="hint">
-          You are not logged in. Please log in to create an application.
-        </p>
-        <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
-
-        <div class="modal-actions">
-          <button type="submit" :disabled="submitting || !isAuthed">
-            {{ submitting ? 'Saving...' : 'Save' }}
-          </button>
-          <button type="button" @click="close" :disabled="submitting">Cancel</button>
-        </div>
-      </form>
+          <footer class="au-actions">
+            <button class="btn primary" type="submit" :disabled="submitting || !isAuthed">
+              {{ submitting ? 'Saving…' : 'Save' }}
+            </button>
+            <button class="btn ghost" type="button" @click="close" :disabled="submitting">
+              Cancel
+            </button>
+          </footer>
+        </form>
+      </div>
     </div>
-  </div>
+  </teleport>
 </template>
 
 <style scoped>
-.overlay {
+/* 遮罩：全屏覆盖 */
+.au-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 2000;
 }
-.upload-form {
-  background: #464444;
+
+/* 不透明深色弹窗（与其它弹窗统一） */
+.au-modal {
+  width: 760px;
+  max-width: 94vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #171b22;
+  color: #eaf0ff;
+  border: 1px solid #2a2f3a;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  padding: 18px;
+}
+.au-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 12px;
+  border-bottom: 1px solid #262c36;
+}
+.au-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
-  max-width: 90vw;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
-.upload-form h2 {
-  margin-bottom: 20px;
-  text-align: center;
+.icon-btn {
+  appearance: none;
+  border: 1px solid #343b47;
+  background: #242a35;
+  color: #eaf0ff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition:
+    transform 0.05s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
 }
-.form-group {
-  margin-bottom: 15px;
+.icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: #4a90e2;
 }
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+
+.au-body {
+  padding: 12px 6px 6px;
+  overflow: auto;
 }
-.form-group input,
-.form-group select,
-.form-group textarea {
+
+/* 网格：日期+状态 并排 */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 表单控件统一风格 */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.form-row label {
+  font-size: 13px;
+  color: #9fb0d0;
+}
+input,
+select,
+textarea {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  background: #1e2430;
+  color: #eef3ff;
+  border: 1px solid #313848;
   font: inherit;
-  box-sizing: border-box;
 }
-.form-group textarea {
+textarea {
   resize: vertical;
 }
+
 .hint {
   color: #ffd166;
-  margin: 8px 0;
+  margin: 6px 0 0;
 }
 .error {
-  color: #ff6b6b;
-  margin: 8px 0;
+  color: #ff8e8e;
+  margin: 6px 0 0;
 }
-.modal-actions {
+
+/* 按钮体系（统一蓝色 + 次要幽灵） */
+.au-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
-  margin-top: 20px;
+  padding: 10px 6px 4px;
+  margin-top: 6px;
+  border-top: 1px solid #262c36;
 }
-.modal-actions button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
+.btn {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
   cursor: pointer;
-  font-size: 14px;
+  transition:
+    transform 0.05s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
 }
-.modal-actions button[type='submit'] {
-  background: #007bff;
-  color: #fff;
+.btn:hover {
+  transform: translateY(-1px);
 }
-.modal-actions button[type='button'] {
-  background: #6c757d;
+.btn:active {
+  transform: translateY(0);
+}
+.btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: linear-gradient(180deg, #5aa3ff 0%, #3b7ce6 100%);
   color: #fff;
+  border-color: rgba(90, 163, 255, 0.5);
+  box-shadow: 0 12px 30px rgba(90, 163, 255, 0.3);
+}
+.btn.ghost {
+  background: #242a35;
+  color: #eaf0ff;
+  border-color: #343b47;
+}
+
+@media (max-width: 640px) {
+  .au-modal {
+    width: 92vw;
+    padding: 14px;
+  }
+  .au-header h2 {
+    font-size: 22px;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .btn {
+    padding: 10px 14px;
+  }
 }
 </style>

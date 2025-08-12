@@ -5,6 +5,12 @@ const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
 const JOBS = `${API_BASE}/jobs`
 const INTERVIEWS = `${API_BASE}/interviews`
 
+// 小工具：附带 Bearer token
+function authHeaders() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export type InterviewInfo = {
   job: { id: number } | number
   date: string
@@ -20,7 +26,7 @@ export type Application = {
   status: string
   notes: string
   jobDescription?: string
-  interview?: InterviewInfo
+  interview?: InterviewInfo | null
 }
 
 export const useApplicationStore = defineStore('application', {
@@ -29,132 +35,152 @@ export const useApplicationStore = defineStore('application', {
     loading: false,
     error: null as string | null,
   }),
+
   actions: {
+    /* ========== Jobs ========== */
     async fetchApplications() {
       this.loading = true
       this.error = null
       try {
-        const token = localStorage.getItem('token')
-        const response = await axios.get(JOBS, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        this.applications = response.data
+        const { data } = await axios.get(JOBS, { headers: authHeaders() })
+        this.applications = data
           .map((app: Application) => ({
             ...app,
             id: app.id,
-            interview: null,
+            interview: null, // 先置空，下面再批量补齐
           }))
           .sort((a: Application, b: Application) => a.id - b.id)
 
         await this.fetchAllInterviewData()
       } catch (err: any) {
-        this.error = err.message || 'Failed to fetch applications'
+        this.error = err?.response?.data || err?.message || 'Failed to fetch applications'
       } finally {
         this.loading = false
       }
     },
+
+    async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
+      try {
+        const { data } = await axios.patch(`${JOBS}/${applicationId}`, updatedFields, {
+          headers: authHeaders(),
+        })
+        const app = this.applications.find((a) => a.id === applicationId)
+        if (app) Object.assign(app, updatedFields)
+        return data
+      } catch (err: any) {
+        this.error = err?.response?.data || err?.message || 'Failed to update application'
+        throw err
+      }
+    },
+
+    async updateJobDescription(applicationId: number, jobDescription: string) {
+      try {
+        const { data } = await axios.patch(
+          `${JOBS}/${applicationId}`,
+          { jobDescription },
+          { headers: authHeaders() },
+        )
+        const app = this.applications.find((a) => a.id === applicationId)
+        if (app) app.jobDescription = jobDescription
+        return data
+      } catch (err: any) {
+        this.error = err?.response?.data || err?.message || 'Failed to update job description'
+        throw err
+      }
+    },
+
+    // ✅ 新增：删除 Job（对应后端 DELETE /jobs/{id}）
+    async deleteApplication(applicationId: number) {
+      try {
+        await axios.delete(`${JOBS}/${applicationId}`, { headers: authHeaders() })
+        this.applications = this.applications.filter((a) => a.id !== applicationId)
+      } catch (err: any) {
+        this.error = err?.response?.data || err?.message || 'Failed to delete application'
+        throw err
+      }
+    },
+
+    addApplication(application: Application) {
+      this.applications.push(application)
+    },
+
+    /* ========== Interviews ========== */
+    // 批量把所有面试记录取回来，合并到对应的 job 上
     async fetchAllInterviewData() {
       try {
-        const token = localStorage.getItem('token')
-        const response = await axios.get(INTERVIEWS, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const interviews = response.data
+        const { data } = await axios.get(INTERVIEWS, { headers: authHeaders() })
+        const interviews = data as any[]
 
-        interviews.forEach((interview: any) => {
-          const app = this.applications.find((a: Application) => a.id === interview.job.id)
+        interviews.forEach((iv) => {
+          const app = this.applications.find((a) => a.id === iv.job.id)
           if (app) {
             app.interview = {
-              job: interview.job?.id || interview.applicationId,
-              date: interview.date,
-              interviewer: interview.interviewer,
-              prepNotes: interview.prepNotes,
+              job: iv.job?.id ?? iv.applicationId,
+              date: iv.date,
+              interviewer: iv.interviewer,
+              prepNotes: iv.prepNotes,
             }
           }
         })
       } catch (err: any) {
-        console.error('No interviews found or error fetching interviews:', err.message)
+        // 没有面试记录也很正常，这里不设全局 error，避免打断页面
+        console.warn('Fetch interviews skipped:', err?.message || err)
       }
     },
+
+    // ⚠️ 修正：按 jobId 查询面试，使用 /interviews/job/{jobId}
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const token = localStorage.getItem('token')
-        const response = await axios.get(`${INTERVIEWS}/${applicationId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const { data } = await axios.get(`${INTERVIEWS}/job/${applicationId}`, {
+          headers: authHeaders(),
         })
-        const app = this.applications.find((a: Application) => a.id === applicationId)
-        if (app) {
-          const interviewData = response.data
-          app.interview = {
-            job: interviewData.job.id,
-            date: interviewData.date,
-            interviewer: interviewData.interviewer,
-            prepNotes: interviewData.prepNotes,
+        // 后端返回该 job 的面试数组；若只用一条，就取第一条
+        const first = Array.isArray(data) ? data[0] : data
+        if (first) {
+          const app = this.applications.find((a) => a.id === applicationId)
+          if (app) {
+            app.interview = {
+              job: first.job.id,
+              date: first.date,
+              interviewer: first.interviewer,
+              prepNotes: first.prepNotes,
+            }
           }
         }
-        return response.data
+        return first ?? null
       } catch (err: any) {
-        this.error = err.message || 'Failed to fetch interview'
+        this.error = err?.response?.data || err?.message || 'Failed to fetch interview'
         return null
       }
     },
+
+    // ⚠️ 修正：按后端要求传 { job: { id }, ... }
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const token = localStorage.getItem('token')
-        await axios.post(INTERVIEWS, {
-          applicationId,
-          ...interview,
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        await axios.post(
+          INTERVIEWS,
+          {
+            job: { id: applicationId },
+            date: interview.date,
+            interviewer: interview.interviewer,
+            prepNotes: interview.prepNotes,
+          },
+          { headers: authHeaders() },
+        )
 
         const app = this.applications.find((a) => a.id === applicationId)
         if (app) {
-          app.interview = { ...interview }
+          app.interview = {
+            job: applicationId,
+            date: interview.date,
+            interviewer: interview.interviewer,
+            prepNotes: interview.prepNotes,
+          }
         }
       } catch (err: any) {
-        this.error = err.message || 'Failed to save interview'
-      }
-    },
-    async updateJobDescription(applicationId: number, jobDescription: string) {
-      try {
-        const token = localStorage.getItem('token')
-        const response = await axios.patch(`${JOBS}/${applicationId}`, {
-          jobDescription,
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-
-        const app = this.applications.find((a: Application) => a.id === applicationId)
-        if (app) {
-          app.jobDescription = jobDescription
-        }
-
-        return response.data
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update job description'
+        this.error = err?.response?.data || err?.message || 'Failed to save interview'
         throw err
       }
-    },
-    async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
-      try {
-        const token = localStorage.getItem('token')
-        const response = await axios.patch(`${JOBS}/${applicationId}`, updatedFields, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const app = this.applications.find((a: Application) => a.id === applicationId)
-        if (app) {
-          Object.assign(app, updatedFields)
-        }
-
-        return response.data
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update application'
-        throw err
-      }
-    },
-    addApplication(application: Application) {
-      this.applications.push(application)
     },
   },
 })

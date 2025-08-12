@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref, reactive, watch } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { useApplicationStore, type Application } from '@/stores/applicationStore'
@@ -9,54 +9,62 @@ import ApplicationUploadForm from '@/components/ApplicationUploadForm.vue'
 import ResumeUploadForm from '@/components/ResumeUploadForm.vue'
 import AuthModal from '@/components/AuthModal.vue'
 
-// stores
 const auth = useAuthStore()
 const applicationStore = useApplicationStore()
 
-// 顶栏登录弹窗
+// Auth modal
 const showAuth = ref(false)
 const authMode = ref<'login' | 'signup'>('login')
-function openAuth(mode: 'login' | 'signup') {
+const openAuth = (mode: 'login' | 'signup') => {
   authMode.value = mode
   showAuth.value = true
 }
-function closeAuth() {
+const closeAuth = () => {
   showAuth.value = false
 }
-function onLogout() {
+const onLogout = () => {
   auth.logout()
+  openAuth('login')
 }
 
-// 新建 Application 弹窗
+// Dialogs
 const showUploadForm = ref(false)
-
-// 上传简历弹窗
 const showResumeForm = ref(false)
 const selectedJobId = ref<number | null>(null)
 
-// 记录“已上传简历”的 jobId（响应式）
+// track resumes
 const jobsWithResume = reactive(new Set<number>())
 
-// 初始化
 onMounted(async () => {
-  // 恢复登录状态并设置 axios header
-  auth.restore()
-  if (auth.token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${auth.token}`
+  await auth.restore()
+  if (auth.isAuthenticated) {
+    if (auth.token) axios.defaults.headers.common['Authorization'] = `Bearer ${auth.token}`
+    await applicationStore.fetchApplications()
+    applicationStore.applications.forEach((app: any) => {
+      if (app?.resumeFile) jobsWithResume.add(app.id)
+    })
+  } else {
+    openAuth('login')
   }
-
-  await applicationStore.fetchApplications()
-
-  // 如果后端 job 带 resumeFile，可在此初始化（可选）
-  applicationStore.applications.forEach((app: any) => {
-    if (app?.resumeFile) jobsWithResume.add(app.id)
-  })
 })
+
+watch(
+  () => auth.isAuthenticated,
+  async (ok) => {
+    if (!ok) return
+    closeAuth()
+    if (auth.token) axios.defaults.headers.common['Authorization'] = `Bearer ${auth.token}`
+    await applicationStore.fetchApplications()
+    jobsWithResume.clear()
+    applicationStore.applications.forEach((app: any) => {
+      if (app?.resumeFile) jobsWithResume.add(app.id)
+    })
+  },
+)
 
 function handleAppSubmission(newApp: Application) {
   applicationStore.addApplication({ ...newApp, id: newApp.id })
 }
-
 function openResumeForm(jobId: number) {
   selectedJobId.value = jobId
   showResumeForm.value = true
@@ -65,45 +73,40 @@ function closeResumeForm() {
   showResumeForm.value = false
   selectedJobId.value = null
 }
-
-// 上传成功后，标记该 job 已有简历
 function onResumeUploaded(p: { jobId: number; url: string }) {
   jobsWithResume.add(p.jobId)
 }
 </script>
 
 <template>
-  <div class="page">
+  <div class="app">
     <!-- 顶栏 -->
     <header class="topbar">
-      <h1 class="brand">JobPilot</h1>
-
-      <div class="actions">
-        <!-- 登录后 -->
-        <template v-if="auth.isAuthenticated">
+      <div class="container topbar-inner">
+        <h1 class="brand">JobPilot</h1>
+        <div class="actions" v-if="auth.isAuthenticated">
           <span class="hello">Hi, {{ auth.user?.name || auth.user?.email }}</span>
-          <button class="btn" @click="onLogout">Log Out</button>
-        </template>
-
-        <!-- 未登录 -->
-        <template v-else>
-          <button class="btn" @click="openAuth('login')">Log In</button>
-          <button class="btn" @click="openAuth('signup')">Sign Up</button>
-        </template>
+          <button class="btn ghost" @click="onLogout">Log Out</button>
+        </div>
       </div>
     </header>
 
-    <!-- 主体 -->
-    <main class="content">
-      <div class="header-row">
-        <h2>Your Applications</h2>
-        <button class="btn primary" @click="showUploadForm = true">Add New Application</button>
+    <!-- 登录后主内容 -->
+    <main v-if="auth.isAuthenticated" class="container main">
+      <div class="section-header">
+        <div class="titleblock">
+          <h2 class="title">Your Applications</h2>
+          <p class="subtitle">
+            Track your pipeline, upload resumes, and stay ready for interviews.
+          </p>
+        </div>
+        <button class="btn primary lg" @click="showUploadForm = true">Add New Application</button>
       </div>
 
       <div v-if="applicationStore.loading" class="hint">Fetching your applications...</div>
       <div v-else-if="applicationStore.error" class="error">{{ applicationStore.error }}</div>
 
-      <div class="grid">
+      <div v-else class="cards">
         <ApplicationCard
           v-for="application in applicationStore.applications"
           :key="application.id"
@@ -114,19 +117,27 @@ function onResumeUploaded(p: { jobId: number; url: string }) {
       </div>
     </main>
 
-    <!-- 登录/注册 -->
-    <AuthModal v-if="showAuth" :mode="authMode" @close="closeAuth" />
+    <!-- 未登录首屏 -->
+    <section v-else class="hero">
+      <div class="container hero-inner">
+        <h2>Welcome to JobPilot</h2>
+        <p class="lead">Sign in to manage your job applications and resumes.</p>
+        <div class="hero-actions">
+          <button class="btn primary xl" @click="openAuth('login')">Log In</button>
+          <button class="btn ghost xl" @click="openAuth('signup')">Create Account</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- 新建 Application -->
+    <!-- Modals -->
+    <AuthModal v-if="showAuth" :mode="authMode" @close="closeAuth" />
     <ApplicationUploadForm
-      v-if="showUploadForm"
+      v-if="showUploadForm && auth.isAuthenticated"
       @close="showUploadForm = false"
       @submitted="handleAppSubmission"
     />
-
-    <!-- 上传简历 -->
     <ResumeUploadForm
-      v-if="showResumeForm && selectedJobId !== null"
+      v-if="showResumeForm && selectedJobId !== null && auth.isAuthenticated"
       :job-id="selectedJobId!"
       @uploaded="onResumeUploaded"
       @close="closeResumeForm"
@@ -135,67 +146,235 @@ function onResumeUploaded(p: { jobId: number; url: string }) {
 </template>
 
 <style scoped>
-.page {
-  max-width: 1120px;
+:global(html, body, #app) {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+:global(#app) {
+  width: 100%;
+  max-width: none; /* 去掉 1280px 限制 */
+  margin: 0;
+  background: transparent; /* 背景交给 .app 控制 */
+}
+/* ========== 全局 reset（防止左偏） ========== */
+:global(html, body) {
+  height: 100%;
+  margin: 0;
+  background: #0b0f17; /* 兜底的深色 */
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    'Noto Sans',
+    'Apple Color Emoji',
+    'Segoe UI Emoji';
+}
+
+/* ========== 主题变量（深色） ========== */
+.app {
+  --bg-0: #0b0f17; /* 背景主色 */
+  --bg-1: #0f1629; /* 次级背景 */
+  --glass: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.08);
+  --text-1: #eef3ff; /* 主文字 */
+  --text-2: #9fb0d0; /* 次文字 */
+  --brand: #5aa3ff; /* 主题蓝 */
+  --brand-2: #7cc0ff; /* 渐变辅助 */
+
+  min-height: 100vh;
+  color: var(--text-1);
+  background:
+    radial-gradient(1200px 600px at -10% -10%, rgba(90, 163, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(1000px 520px at 110% -10%, rgba(124, 192, 255, 0.14) 0%, transparent 60%),
+    linear-gradient(180deg, #0b0f17 0%, #0b0f17 100%);
+}
+
+/* 统一容器，保证真正水平居中 */
+.container {
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 0 24px;
 }
 
+/* ========== 顶栏（磨砂玻璃效果） ========== */
 .topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(15, 22, 41, 0.55);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--border);
 }
-
+.topbar-inner {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .brand {
   font-size: 28px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  background: linear-gradient(90deg, #fff, #bcd6ff 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
 }
 .hello {
-  opacity: 0.9;
-  margin-right: 8px;
+  color: var(--text-2);
 }
 
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 12px 0 20px;
-}
-
-.grid {
+/* ========== 未登录首屏（上下左右居中） ========== */
+.hero {
+  min-height: calc(100vh - 68px);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
+  place-items: center;
+}
+.hero-inner {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 40px 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.hero h2 {
+  font-size: 48px;
+  line-height: 1.12;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.lead {
+  font-size: 18px;
+  color: var(--text-2);
+  margin: 0 0 8px;
+}
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
 }
 
-.btn {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  background: #2f2f2f;
-  color: #fff;
+/* ========== 登录后主内容 ========== */
+.main {
+  padding: 28px 0 80px;
 }
-.btn:hover {
-  opacity: 0.9;
+
+/* 顶部标题行：左标题 + 右按钮；整体仍在居中容器内 */
+.section-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 16px;
+  margin: 10px 0 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
 }
-.btn.primary {
-  background: #0d6efd;
+.title {
+  font-size: 26px;
+  margin: 0 0 6px;
 }
+.subtitle {
+  margin: 0;
+  color: var(--text-2);
+}
+
+/* 卡片区域：真正水平居中排列 */
+.cards {
+  display: grid;
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 22px;
+  justify-content: center; /* 让网格在剩余空间里居中 */
+  justify-items: stretch;
+  align-items: start;
+}
+
+/* 提示/错误 */
 .hint {
-  opacity: 0.8;
-  padding: 12px 0;
+  opacity: 0.9;
+  padding: 10px 0;
+  color: var(--text-2);
 }
 .error {
-  color: #ff6b6b;
-  padding: 12px 0;
+  color: #ff8080;
+  padding: 10px 0;
+}
+
+/* ========== 按钮（主色+幽灵） ========== */
+.btn {
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 650;
+  border: 1px solid transparent;
+  transition:
+    transform 0.05s ease,
+    box-shadow 0.25s ease,
+    opacity 0.2s ease,
+    border-color 0.25s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, var(--brand) 0%, #3b7ce6 100%);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(90, 163, 255, 0.35);
+  border-color: rgba(90, 163, 255, 0.45);
+}
+.btn.ghost {
+  background: var(--glass);
+  color: var(--text-1);
+  border-color: var(--border);
+}
+.btn.lg {
+  padding: 11px 18px;
+}
+.btn.xl {
+  padding: 13px 22px;
+  font-size: 16px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+  .hero h2 {
+    font-size: 36px;
+  }
+  .lead {
+    font-size: 17px;
+  }
+  .section-header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .cards {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import {
   useApplicationStore,
   type Application,
   type InterviewInfo,
 } from '@/stores/applicationStore'
 
-const props = defineProps<{
-  applicationId: number
-  isVisible: boolean
-}>()
+const props = defineProps<{ applicationId: number; isVisible: boolean }>()
 const emit = defineEmits(['close'])
 
 const applicationStore = useApplicationStore()
 const application = computed((): Application | undefined =>
   applicationStore.applications.find((a) => a.id === props.applicationId),
 )
-const interview = computed(
+
+const interview = computed<InterviewInfo>(
   () =>
     application.value?.interview || {
       job: props.applicationId,
@@ -34,7 +32,7 @@ const editInterview = ref<InterviewInfo>({
   prepNotes: '',
 })
 
-const saveInterview = async () => {
+async function saveInterview() {
   try {
     await applicationStore.saveInterview(props.applicationId, {
       job: { id: props.applicationId },
@@ -43,185 +41,286 @@ const saveInterview = async () => {
       prepNotes: editInterview.value.prepNotes,
     })
     editMode.value = false
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error saving interview:', err)
   }
 }
 const cancelEdit = () => (editMode.value = false)
+const startEdit = () => {
+  editInterview.value = { ...interview.value, job: props.applicationId }
+  editMode.value = true
+}
 
+const close = () => {
+  document.body.style.overflow = ''
+  emit('close')
+}
+
+/* 打开时：填充表单 + 锁滚动；关闭时：恢复滚动 */
 watch(
   () => props.isVisible,
-  async (visible) => {
-    if (visible) {
+  async (v) => {
+    if (v) {
       editMode.value = false
-
       await nextTick()
-
-      const interviewData = application.value?.interview
-      editInterview.value = {
-        job: props.applicationId,
-        date: interviewData?.date || '',
-        interviewer: interviewData?.interviewer || '',
-        prepNotes: interviewData?.prepNotes || '',
-      }
+      editInterview.value = { ...interview.value, job: props.applicationId }
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
   },
 )
-
-const close = () => emit('close')
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
+})
 </script>
 
 <template>
-  <div v-if="isVisible" class="interview-tracker-overlay">
-    <div class="interview-tracker-modal">
-      <h2>Interview Details</h2>
-      <div v-if="!editMode">
-        <div class="interview-content">
-          <p><strong>Date:</strong> {{ interview.date || 'Not set' }}</p>
-          <p><strong>Interviewer:</strong> {{ interview.interviewer || 'Not set' }}</p>
-          <p><strong>Prep Notes:</strong> {{ interview.prepNotes || 'None' }}</p>
-        </div>
-        <div class="modal-actions">
-          <button @click="editMode = true">Edit Interview Info</button>
-          <button @click="close">Close</button>
-        </div>
-      </div>
-      <div v-else>
-        <div class="edit-content">
-          <div class="form-group">
-            <label for="interviewDate">Interview Date:</label>
-            <input type="date" v-model="editInterview.date" id="interviewDate" />
+  <!-- Teleport: 避免被父级 transform 限制 -->
+  <teleport to="body">
+    <div v-if="isVisible" class="it-overlay" @click.self="close" @keydown.esc="close" tabindex="0">
+      <div class="it-modal" @click.stop>
+        <header class="it-header">
+          <h2>Interview Details</h2>
+          <button class="icon-btn" aria-label="Close" @click="close">✕</button>
+        </header>
+
+        <!-- 查看态 -->
+        <section v-if="!editMode" class="it-view">
+          <div class="it-box">
+            <p>
+              <span class="k">Date:</span> <span class="v">{{ interview.date || 'Not set' }}</span>
+            </p>
+            <p>
+              <span class="k">Interviewer:</span>
+              <span class="v">{{ interview.interviewer || 'Not set' }}</span>
+            </p>
+            <div class="notes">
+              <div class="k">Prep Notes:</div>
+              <pre class="v">{{ interview.prepNotes || 'None' }}</pre>
+            </div>
+          </div>
+          <div class="it-actions">
+            <button class="btn primary" @click="startEdit">Edit Interview Info</button>
+            <button class="btn ghost" @click="close">Close</button>
+          </div>
+        </section>
+
+        <!-- 编辑态 -->
+        <section v-else class="it-edit">
+          <div class="form-row">
+            <label for="interviewDate">Interview Date</label>
+            <input id="interviewDate" type="date" v-model="editInterview.date" />
           </div>
 
-          <div class="form-group">
-            <label for="interviewerName">Interviewer Name:</label>
-            <input type="text" v-model="editInterview.interviewer" id="interviewerName" />
+          <div class="form-row">
+            <label for="interviewerName">Interviewer</label>
+            <input id="interviewerName" type="text" v-model="editInterview.interviewer" />
           </div>
 
-          <div class="form-group">
-            <label for="prepNotes">Prep Notes:</label>
-            <textarea v-model="editInterview.prepNotes" id="prepNotes" rows="10"></textarea>
+          <div class="form-row">
+            <label for="prepNotes">Prep Notes</label>
+            <textarea id="prepNotes" rows="8" v-model="editInterview.prepNotes"></textarea>
           </div>
-        </div>
 
-        <div class="modal-actions">
-          <button @click="saveInterview">Save</button>
-          <button @click="cancelEdit">Cancel</button>
-        </div>
+          <div class="it-actions">
+            <button class="btn primary" @click="saveInterview">Save</button>
+            <button class="btn ghost" @click="cancelEdit">Cancel</button>
+          </div>
+        </section>
       </div>
     </div>
-  </div>
+  </teleport>
 </template>
 
 <style scoped>
-.interview-tracker-overlay {
+/* 遮罩：全屏覆盖 */
+.it-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 2000;
 }
 
-.interview-tracker-modal {
-  background: rgb(70, 68, 68);
-  padding: 20px;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90vw;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  color: white;
-}
-
-.interview-content {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 5px;
-  margin-bottom: 20px;
-  min-height: 100px;
-  word-wrap: break-word;
-}
-
-.interview-content p {
-  margin: 0 0 10px 0;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.interview-content p:last-child {
-  margin-bottom: 0;
-}
-
-.edit-content {
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.form-group textarea {
-  min-height: 200px;
-}
-
-.modal-actions {
+/* 不透明深色弹窗（与其它弹窗一致） */
+.it-modal {
+  width: 720px;
+  max-width: 94vw;
+  max-height: 88vh;
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+  flex-direction: column;
+  background-color: #171b22;
+  color: #eaf0ff;
+  border: 1px solid #2a2f3a;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  padding: 18px;
 }
 
-.modal-actions button,
-.interview-tracker-modal > div:first-child button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
+.it-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 12px;
+  border-bottom: 1px solid #262c36;
+}
+.it-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #fff;
+}
+.icon-btn {
+  appearance: none;
+  border: 1px solid #343b47;
+  background: #242a35;
+  color: #eaf0ff;
+  border-radius: 10px;
+  padding: 6px 10px;
   cursor: pointer;
-  font-size: 14px;
+  transition:
+    transform 0.05s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
+}
+.icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: #4a90e2;
 }
 
-.modal-actions button:first-child,
-.interview-tracker-modal > div:first-child button:first-child {
-  background-color: #007bff;
-  color: white;
+.it-view,
+.it-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px 6px 4px;
 }
 
-.modal-actions button:first-child:hover,
-.interview-tracker-modal > div:first-child button:first-child:hover {
-  background-color: #0056b3;
+/* 查看态信息块 */
+.it-box {
+  background: #1e2430;
+  border: 1px solid #313848;
+  border-radius: 12px;
+  padding: 18px;
+  max-height: 52vh;
+  overflow: auto;
+}
+.it-box p {
+  margin: 0 0 10px 0;
+  line-height: 1.7;
+}
+.k {
+  color: #9fb0d0;
+  margin-right: 6px;
+}
+.v {
+  color: #e9eefc;
+}
+.notes {
+  margin-top: 6px;
+}
+pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  line-height: 1.65;
+  color: #e9eefc;
 }
 
-.modal-actions button:not(:first-child),
-.interview-tracker-modal > div:first-child button:not(:first-child) {
-  background-color: #6c757d;
-  color: white;
+/* 表单 */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-row label {
+  font-size: 13px;
+  color: #9fb0d0;
+}
+input,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  background: #1e2430;
+  color: #eef3ff;
+  border: 1px solid #313848;
+}
+textarea {
+  resize: vertical;
 }
 
-.modal-actions button:not(:first-child):hover,
-.interview-tracker-modal > div:first-child button:not(:first-child):hover {
-  background-color: #545b62;
+/* 按钮体系 */
+.it-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 1px solid #262c36;
+}
+.btn {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.05s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn.primary {
+  background: linear-gradient(180deg, #5aa3ff 0%, #3b7ce6 100%);
+  color: #fff;
+  border-color: rgba(90, 163, 255, 0.5);
+  box-shadow: 0 12px 30px rgba(90, 163, 255, 0.3);
+}
+.btn.ghost {
+  background: #242a35;
+  color: #eaf0ff;
+  border-color: #343b47;
+}
+
+/* 自定义滚动条（可选） */
+.it-box::-webkit-scrollbar {
+  width: 10px;
+}
+.it-box::-webkit-scrollbar-thumb {
+  background: #3a4354;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.it-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .it-modal {
+    width: 92vw;
+    padding: 14px;
+  }
+  .it-header h2 {
+    font-size: 22px;
+  }
+  .btn {
+    padding: 10px 14px;
+  }
 }
 </style>
