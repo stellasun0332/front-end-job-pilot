@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-const JOBS = 'https://jobpilot-backend-62hx.onrender.com/jobs'
-const INTERVIEWS = 'https://jobpilot-backend-62hx.onrender.com/interviews'
+const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
+const JOBS = `${API_BASE}/jobs`
+const INTERVIEWS = `${API_BASE}/interviews`
 
 export type InterviewInfo = {
   job: { id: number } | number
@@ -33,17 +34,17 @@ export const useApplicationStore = defineStore('application', {
       this.loading = true
       this.error = null
       try {
-        //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
-        const response = await axios.get(`${JOBS}`)
+        const token = localStorage.getItem('token')
+        const response = await axios.get(JOBS, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         this.applications = response.data
           .map((app: Application) => ({
             ...app,
             id: app.id,
             interview: null,
           }))
-          .sort((a: Application, b: Application) => {
-            return a.id - b.id
-          })
+          .sort((a: Application, b: Application) => a.id - b.id)
 
         await this.fetchAllInterviewData()
       } catch (err: any) {
@@ -54,7 +55,10 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchAllInterviewData() {
       try {
-        const response = await axios.get(`${INTERVIEWS}`)
+        const token = localStorage.getItem('token')
+        const response = await axios.get(INTERVIEWS, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         const interviews = response.data
 
         interviews.forEach((interview: any) => {
@@ -74,7 +78,10 @@ export const useApplicationStore = defineStore('application', {
     },
     async fetchInterviewInfo(applicationId: number) {
       try {
-        const response = await axios.get(`${INTERVIEWS}/${applicationId}`)
+        const token = localStorage.getItem('token')
+        const response = await axios.get(`${INTERVIEWS}/${applicationId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           const interviewData = response.data
@@ -93,12 +100,14 @@ export const useApplicationStore = defineStore('application', {
     },
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
-        const response = await axios.post(`${INTERVIEWS}`, {
+        const token = localStorage.getItem('token')
+        await axios.post(INTERVIEWS, {
           applicationId,
           ...interview,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         })
 
-        const updatedInterview = response.data
         const app = this.applications.find((a) => a.id === applicationId)
         if (app) {
           app.interview = { ...interview }
@@ -109,8 +118,11 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateJobDescription(applicationId: number, jobDescription: string) {
       try {
+        const token = localStorage.getItem('token')
         const response = await axios.patch(`${JOBS}/${applicationId}`, {
           jobDescription,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         })
 
         const app = this.applications.find((a: Application) => a.id === applicationId)
@@ -126,7 +138,10 @@ export const useApplicationStore = defineStore('application', {
     },
     async updateApplication(applicationId: number, updatedFields: Partial<Application>) {
       try {
-        const response = await axios.patch(`${JOBS}/${applicationId}`, updatedFields)
+        const token = localStorage.getItem('token')
+        const response = await axios.patch(`${JOBS}/${applicationId}`, updatedFields, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         const app = this.applications.find((a: Application) => a.id === applicationId)
         if (app) {
           Object.assign(app, updatedFields)

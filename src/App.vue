@@ -1,15 +1,31 @@
 <script setup lang="ts">
 import { onMounted, ref, reactive } from 'vue'
-import { useApplicationStore, type Application } from './stores/applicationStore'
-import { useAuthStore } from './stores/authStore'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
+import { useApplicationStore, type Application } from '@/stores/applicationStore'
 
-import ApplicationCard from './components/ApplicationCard.vue'
-import ApplicationUploadForm from './components/ApplicationUploadForm.vue'
-import ResumeUploadForm from './components/ResumeUploadForm.vue'
-import AuthModal from './components/AuthModal.vue'
+import ApplicationCard from '@/components/ApplicationCard.vue'
+import ApplicationUploadForm from '@/components/ApplicationUploadForm.vue'
+import ResumeUploadForm from '@/components/ResumeUploadForm.vue'
+import AuthModal from '@/components/AuthModal.vue'
 
-const applicationStore = useApplicationStore()
+// stores
 const auth = useAuthStore()
+const applicationStore = useApplicationStore()
+
+// 顶栏登录弹窗
+const showAuth = ref(false)
+const authMode = ref<'login' | 'signup'>('login')
+function openAuth(mode: 'login' | 'signup') {
+  authMode.value = mode
+  showAuth.value = true
+}
+function closeAuth() {
+  showAuth.value = false
+}
+function onLogout() {
+  auth.logout()
+}
 
 // 新建 Application 弹窗
 const showUploadForm = ref(false)
@@ -18,11 +34,20 @@ const showUploadForm = ref(false)
 const showResumeForm = ref(false)
 const selectedJobId = ref<number | null>(null)
 
-// 记录“已上传简历”的 jobId
+// 记录“已上传简历”的 jobId（响应式）
 const jobsWithResume = reactive(new Set<number>())
 
+// 初始化
 onMounted(async () => {
+  // 恢复登录状态并设置 axios header
+  auth.restore()
+  if (auth.token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${auth.token}`
+  }
+
   await applicationStore.fetchApplications()
+
+  // 如果后端 job 带 resumeFile，可在此初始化（可选）
   applicationStore.applications.forEach((app: any) => {
     if (app?.resumeFile) jobsWithResume.add(app.id)
   })
@@ -40,53 +65,57 @@ function closeResumeForm() {
   showResumeForm.value = false
   selectedJobId.value = null
 }
+
+// 上传成功后，标记该 job 已有简历
 function onResumeUploaded(p: { jobId: number; url: string }) {
   jobsWithResume.add(p.jobId)
 }
-
-// 登录/注册弹窗
-const showAuth = ref<false | 'login' | 'signup'>(false)
 </script>
 
 <template>
   <div class="page">
-    <!-- 顶部 -->
-    <header class="site-header">
-      <div class="header-inner">
-        <div class="brand">JobPilot</div>
+    <!-- 顶栏 -->
+    <header class="topbar">
+      <h1 class="brand">JobPilot</h1>
 
-        <div class="actions" v-if="!auth.isAuthed">
-          <button class="btn" @click="showAuth = 'login'">Log In</button>
-          <button class="btn" @click="showAuth = 'signup'">Sign Up</button>
-        </div>
-        <div class="actions" v-else>
-          <span class="greet">Hi, {{ auth.user?.name || 'User ' + auth.user?.id }}</span>
-          <button class="btn" @click="showUploadForm = true">Add New Application</button>
-          <button class="btn btn-secondary" @click="auth.logout()">Log out</button>
-        </div>
+      <div class="actions">
+        <!-- 登录后 -->
+        <template v-if="auth.isAuthenticated">
+          <span class="hello">Hi, {{ auth.user?.name || auth.user?.email }}</span>
+          <button class="btn" @click="onLogout">Log Out</button>
+        </template>
+
+        <!-- 未登录 -->
+        <template v-else>
+          <button class="btn" @click="openAuth('login')">Log In</button>
+          <button class="btn" @click="openAuth('signup')">Sign Up</button>
+        </template>
       </div>
     </header>
 
-    <!-- 内容 -->
-    <main class="container">
-      <section class="section">
-        <h1 class="section-title">Your Applications</h1>
+    <!-- 主体 -->
+    <main class="content">
+      <div class="header-row">
+        <h2>Your Applications</h2>
+        <button class="btn primary" @click="showUploadForm = true">Add New Application</button>
+      </div>
 
-        <div v-if="applicationStore.loading" class="hint">Fetching your applications...</div>
-        <div v-else-if="applicationStore.error" class="error">{{ applicationStore.error }}</div>
+      <div v-if="applicationStore.loading" class="hint">Fetching your applications...</div>
+      <div v-else-if="applicationStore.error" class="error">{{ applicationStore.error }}</div>
 
-        <!-- 关键：把卡片放进 .cards 容器，交给 CSS Grid 自动铺开 -->
-        <div class="cards">
-          <ApplicationCard
-            v-for="app in applicationStore.applications"
-            :key="app.id"
-            :applicationId="app.id"
-            :hasResume="jobsWithResume.has(app.id)"
-            @upload-resume="openResumeForm"
-          />
-        </div>
-      </section>
+      <div class="grid">
+        <ApplicationCard
+          v-for="application in applicationStore.applications"
+          :key="application.id"
+          :applicationId="application.id"
+          :hasResume="jobsWithResume.has(application.id)"
+          @upload-resume="openResumeForm"
+        />
+      </div>
     </main>
+
+    <!-- 登录/注册 -->
+    <AuthModal v-if="showAuth" :mode="authMode" @close="closeAuth" />
 
     <!-- 新建 Application -->
     <ApplicationUploadForm
@@ -102,127 +131,71 @@ const showAuth = ref<false | 'login' | 'signup'>(false)
       @uploaded="onResumeUploaded"
       @close="closeResumeForm"
     />
-
-    <!-- 登录/注册 -->
-    <AuthModal v-if="showAuth" :mode="showAuth" @close="showAuth = false" />
   </div>
 </template>
 
 <style scoped>
-/* ===== 全局布局 ===== */
 .page {
-  min-height: 100vh;
-  background: #0e0f12;
-  color: #e9eaed;
-}
-
-/* 调整最大内容宽度：想更宽可以改成 1800px 或 100% */
-:root {
-  --content-max: 1600px;
-}
-
-/* ===== 顶部导航 ===== */
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(16, 18, 24, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(6px);
-}
-.header-inner {
-  max-width: var(--content-max);
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 14px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  padding: 24px 16px 64px;
 }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 .brand {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: 0.2px;
-  color: #dcdfe4;
+  letter-spacing: 0.5px;
 }
 .actions {
   display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
 }
-.greet {
+.hello {
   opacity: 0.9;
-  margin-right: 6px;
+  margin-right: 8px;
 }
 
-/* ===== 内容容器 ===== */
-.container {
-  max-width: var(--content-max);
-  margin: 24px auto 80px;
-  padding: 0 32px; /* 让两侧更靠边一点可以改小，比如 0 20px */
-}
-.section {
-  margin-top: 6px;
-}
-.section-title {
-  font-size: 24px;
-  margin: 10px 0 18px;
-  color: #f2f3f5;
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 12px 0 20px;
 }
 
-/* ===== 卡片网格：关键样式 ===== */
-.cards {
+.grid {
   display: grid;
-  gap: 22px;
-  /* 每列最小 380px，屏幕够宽就会自动多列排列 */
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-}
-.cards > * {
-  height: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
 }
 
-/* 超宽屏时再放大（可选） */
-@media (min-width: 1800px) {
-  :root {
-    --content-max: 1800px;
-  }
-  .cards {
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  }
-}
-
-/* ===== 通用按钮 ===== */
 .btn {
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
-  background: #1f6feb;
-  color: #fff;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.15s ease;
+  background: #2f2f2f;
+  color: #fff;
 }
 .btn:hover {
-  background: #175ad1;
+  opacity: 0.9;
 }
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn.primary {
+  background: #0d6efd;
 }
-.btn-secondary {
-  background: #6c757d;
-}
-.btn-secondary:hover {
-  background: #545b62;
-}
-
-/* ===== 状态提示 ===== */
 .hint {
-  color: #b8c0cc;
-  margin: 6px 0 14px;
+  opacity: 0.8;
+  padding: 12px 0;
 }
 .error {
   color: #ff6b6b;
-  margin: 6px 0 14px;
+  padding: 12px 0;
 }
 </style>
