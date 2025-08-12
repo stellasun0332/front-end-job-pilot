@@ -70,9 +70,9 @@ const toggleEditApplication = () => {
   showEditApplication.value = !showEditApplication.value
 }
 
-const toggleResumeUpload = () => {
-  showResumeUpload.value = !showResumeUpload.value
-}
+// const toggleResumeUpload = () => {
+//   showResumeUpload.value = !showResumeUpload.value
+// }
 
 const saveEdit = async () => {
   try {
