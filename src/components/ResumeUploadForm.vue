@@ -86,9 +86,9 @@ const uploadResume = async () => {
       throw new Error('Upload failed')
     }
 
-    const result = await response.json()
+    const result = await response.text()
     await applicationStore.updateApplication(props.applicationId, {
-      resumeUrl: result.resumeUrl,
+      resumeFile: result,
     })
 
     close()

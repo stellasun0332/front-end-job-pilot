@@ -97,6 +97,53 @@ const saveEdit = async () => {
 const cancelEdit = () => {
   showEditApplication.value = false
 }
+
+const downloadResume = async () => {
+  if (!application.value?.id) {
+    console.error('No application ID available')
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/resumes/download?jobId=${application.value.id}`)
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    // Set default filename to resume.pdf
+    let filename = 'resume.pdf'
+
+    // Get the filename from the Content-Disposition header if available (optional)
+    const contentDisposition = response.headers.get('Content-Disposition')
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Convert response to blob
+    const blob = await response.blob()
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+
+    // Trigger download
+    document.body.appendChild(link)
+    link.click()
+
+    // Cleanup
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error downloading resume:', error)
+    // You might want to show a user-friendly error message here
+  }
+}
 </script>
 
 <template>
@@ -119,10 +166,8 @@ const cancelEdit = () => {
       <p>Applied on: {{ application?.dateApplied }}</p>
       <p>Status: {{ application?.status }}</p>
       <p>Notes: {{ application?.notes }}</p>
-      <div v-if="application?.resumeUrl" class="resume-link">
-        <a :href="application.resumeUrl" target="_blank" class="download-resume">
-          Download Resume
-        </a>
+      <div v-if="application?.resumeFile" class="resume-link">
+        <button @click="downloadResume" class="download-resume">Download Resume</button>
       </div>
     </div>
     <div class="job-actions">
@@ -152,6 +197,7 @@ const cancelEdit = () => {
     <!-- Edit View -->
     <div v-if="showEditApplication" class="edit-overlay">
       <div class="edit-modal">
+        <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
         <h2>Edit Application</h2>
         <form @submit.prevent="saveEdit">
           <div class="form-group">
@@ -247,10 +293,13 @@ const cancelEdit = () => {
   background-color: #28a745;
   color: #ffffff;
   text-decoration: none;
+  border: none;
   border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 500;
+  cursor: pointer;
 }
+
 .download-resume:hover {
   background-color: #218838;
 }

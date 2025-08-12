@@ -34,8 +34,6 @@ const close = () => {
       <h2>Add New Application</h2>
       <form @submit.prevent="submitApplication">
         <div class="form-group">
-          <!--TODO: REMOVE ID FIELD ONCE USER AUTH IS IMPLEMENTED -->
-          <!--! TESTING CURRENTLY REQUIRES ENTERING A USER ID MANUALLY-->
           <label for="id">Your ID:</label>
           <input id="id" type="number" v-model="form.user.id" required />
         </div>

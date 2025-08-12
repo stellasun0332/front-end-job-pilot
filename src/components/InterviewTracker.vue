@@ -42,6 +42,13 @@ const saveInterview = async () => {
       interviewer: editInterview.value.interviewer,
       prepNotes: editInterview.value.prepNotes,
     })
+
+    if (editInterview.value.date && application.value) {
+      await applicationStore.updateApplication(props.applicationId, {
+        ...application.value,
+        status: 'Interview Scheduled',
+      })
+    }
     editMode.value = false
   } catch (err: unknown) {
     console.error('Error saving interview:', err)
@@ -74,6 +81,7 @@ const close = () => emit('close')
 <template>
   <div v-if="isVisible" class="interview-tracker-overlay">
     <div class="interview-tracker-modal">
+      <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
       <h2>Interview Details</h2>
       <div v-if="!editMode">
         <div class="interview-content">
