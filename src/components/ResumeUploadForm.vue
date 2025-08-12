@@ -3,7 +3,10 @@ import { ref } from 'vue'
 const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
 
 const props = defineProps<{ jobId: number }>()
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'uploaded', p: { jobId: number; url: string }): void
+}>()
 
 const file = ref<File | null>(null)
 const uploading = ref(false)
@@ -31,12 +34,15 @@ async function upload() {
     fd.append('jobId', String(props.jobId))
 
     const resp = await fetch(`${API_BASE}/resumes/upload`, { method: 'POST', body: fd })
-    const text = await resp.text() // 纯文本 URL
+    const text = await resp.text()
     if (!resp.ok) throw new Error(text || 'Upload failed')
-    if (!/^https?:\/\/.+/.test(text.trim()))
-      throw new Error('Unexpected server response (not a URL).')
+
+    const url = text.trim()
+    if (!/^https?:\/\/.+/.test(url)) throw new Error('Unexpected server response (not a URL).')
 
     successMsg.value = 'Resume uploaded.'
+    // 通知父组件：这个 job 已经有简历了
+    emit('uploaded', { jobId: props.jobId, url })
     emit('close')
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Upload failed.'
@@ -68,6 +74,7 @@ async function upload() {
 </template>
 
 <style scoped>
+/* 同之前 */
 .overlay {
   position: fixed;
   inset: 0;

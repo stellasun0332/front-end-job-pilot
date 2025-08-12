@@ -4,7 +4,9 @@ import { ref, computed } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
 
-const props = defineProps<{ applicationId: number }>()
+const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
+
+const props = defineProps<{ applicationId: number; hasResume?: boolean }>()
 const emit = defineEmits<{ (e: 'upload-resume', jobId: number): void }>()
 
 const applicationStore = useApplicationStore()
@@ -30,17 +32,17 @@ const interviewReminder = computed(() => {
   if (!interviewDate) return null
 
   const today = new Date()
-  const todayStr =
+  const todayString =
     today.getFullYear() +
     '-' +
     String(today.getMonth() + 1).padStart(2, '0') +
     '-' +
     String(today.getDate()).padStart(2, '0')
 
-  if (interviewDate < todayStr) return { message: 'Interview date has passed', isPast: true }
-  if (interviewDate === todayStr) return { message: 'Interview is today!', isToday: true }
+  if (interviewDate < todayString) return { message: 'Interview date has passed', isPast: true }
+  if (interviewDate === todayString) return { message: 'Interview is today!', isToday: true }
 
-  const d1 = new Date(todayStr)
+  const d1 = new Date(todayString)
   const d2 = new Date(interviewDate)
   const days = Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24))
   return days === 1
@@ -72,9 +74,42 @@ const saveEdit = async () => {
     console.error('Error updating application:', error)
   }
 }
+const cancelEdit = () => (showEditApplication.value = false)
 
-const cancelEdit = () => {
-  showEditApplication.value = false
+// ===== 下载：固定用 props.applicationId，并在未上传时拦截 =====
+const downloading = ref(false)
+const downloadError = ref('')
+
+async function downloadResume() {
+  if (!props.hasResume) {
+    alert('Please upload your resume before downloading.')
+    return
+  }
+  downloading.value = true
+  downloadError.value = ''
+  try {
+    const jobId = props.applicationId
+    const resp = await fetch(`${API_BASE}/resumes/download?jobId=${jobId}`)
+    const text = await resp.text()
+    if (!resp.ok) throw new Error(text || 'Download failed')
+
+    const url = text.trim()
+    if (!/^https?:\/\/.+/.test(url)) throw new Error('Unexpected server response (not a URL).')
+
+    // 使用 a 标签触发，避免被拦截
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } catch (e) {
+    downloadError.value = e instanceof Error ? e.message : 'Download failed'
+    alert(downloadError.value)
+  } finally {
+    downloading.value = false
+  }
 }
 </script>
 
@@ -98,13 +133,24 @@ const cancelEdit = () => {
       <p>Status: {{ application?.status }}</p>
       <p>Notes: {{ application?.notes }}</p>
     </div>
+
     <div class="job-actions">
       <button @click="toggleJobDescription">Job Description</button>
-      <!-- 关键改动：把点击事件抛给父组件 -->
       <button @click="emit('upload-resume', applicationId)">Upload Resume</button>
+
+      <!-- 允许点击；函数里判断并弹窗 -->
+      <button
+        @click="downloadResume"
+        :disabled="downloading"
+        :title="hasResume ? 'Download the resume for this job' : 'Please upload your resume first'"
+      >
+        {{ downloading ? 'Downloading...' : 'Download Resume' }}
+      </button>
+
       <button @click="toggleEditApplication">Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
+
     <InterviewTracker
       v-if="application"
       :isVisible="showInterviewTracker"
@@ -118,7 +164,6 @@ const cancelEdit = () => {
       @close="toggleJobDescription"
     />
 
-    <!-- Edit View -->
     <div v-if="showEditApplication" class="edit-overlay">
       <div class="edit-modal">
         <h2>Edit Application</h2>
