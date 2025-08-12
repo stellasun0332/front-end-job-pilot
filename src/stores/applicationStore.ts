@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
 const JOBS = `${API_BASE}/jobs`
 const INTERVIEWS = `${API_BASE}/interviews`
 
-// 小工具：附带 Bearer token
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -27,6 +27,7 @@ export type Application = {
   notes: string
   jobDescription?: string
   interview?: InterviewInfo | null
+  user?: { id: number; name?: string; email?: string } // 供前端过滤使用
 }
 
 export const useApplicationStore = defineStore('application', {
@@ -43,13 +44,16 @@ export const useApplicationStore = defineStore('application', {
       this.error = null
       try {
         const { data } = await axios.get(JOBS, { headers: authHeaders() })
-        this.applications = data
-          .map((app: Application) => ({
-            ...app,
-            id: app.id,
-            interview: null, // 先置空，下面再批量补齐
-          }))
-          .sort((a: Application, b: Application) => a.id - b.id)
+        const rows: Application[] = Array.isArray(data) ? data : []
+
+        // 仅前端过滤：只显示当前登录用户的 jobs
+        const auth = useAuthStore()
+        const myId = auth.user?.id
+        const mine = myId ? rows.filter(j => j?.user?.id === myId) : rows
+
+        this.applications = mine
+          .map((app) => ({ ...app, interview: null }))
+          .sort((a, b) => a.id - b.id)
 
         await this.fetchAllInterviewData()
       } catch (err: any) {
@@ -89,7 +93,7 @@ export const useApplicationStore = defineStore('application', {
       }
     },
 
-    // ✅ 新增：删除 Job（对应后端 DELETE /jobs/{id}）
+    // 删除 Job（DELETE /jobs/{id}）
     async deleteApplication(applicationId: number) {
       try {
         await axios.delete(`${JOBS}/${applicationId}`, { headers: authHeaders() })
@@ -105,17 +109,21 @@ export const useApplicationStore = defineStore('application', {
     },
 
     /* ========== Interviews ========== */
-    // 批量把所有面试记录取回来，合并到对应的 job 上
+    // 批量取回所有面试，再只合并到当前 store 中的 jobs（天然只作用于“我的”）
     async fetchAllInterviewData() {
       try {
         const { data } = await axios.get(INTERVIEWS, { headers: authHeaders() })
-        const interviews = data as any[]
+        const interviews = Array.isArray(data) ? data : []
 
-        interviews.forEach((iv) => {
-          const app = this.applications.find((a) => a.id === iv.job.id)
+        // 仅对当前 applications 的 id 合并
+        const idSet = new Set(this.applications.map(a => a.id))
+        interviews.forEach((iv: any) => {
+          const jid = iv?.job?.id ?? iv?.applicationId
+          if (!idSet.has(jid)) return
+          const app = this.applications.find(a => a.id === jid)
           if (app) {
             app.interview = {
-              job: iv.job?.id ?? iv.applicationId,
+              job: jid,
               date: iv.date,
               interviewer: iv.interviewer,
               prepNotes: iv.prepNotes,
@@ -123,18 +131,17 @@ export const useApplicationStore = defineStore('application', {
           }
         })
       } catch (err: any) {
-        // 没有面试记录也很正常，这里不设全局 error，避免打断页面
+        // 没有面试记录不算错误，避免打断页面
         console.warn('Fetch interviews skipped:', err?.message || err)
       }
     },
 
-    // ⚠️ 修正：按 jobId 查询面试，使用 /interviews/job/{jobId}
+    // 按 jobId 查询面试（/interviews/job/{jobId}），需要时再单查
     async fetchInterviewInfo(applicationId: number) {
       try {
         const { data } = await axios.get(`${INTERVIEWS}/job/${applicationId}`, {
           headers: authHeaders(),
         })
-        // 后端返回该 job 的面试数组；若只用一条，就取第一条
         const first = Array.isArray(data) ? data[0] : data
         if (first) {
           const app = this.applications.find((a) => a.id === applicationId)
@@ -154,7 +161,7 @@ export const useApplicationStore = defineStore('application', {
       }
     },
 
-    // ⚠️ 修正：按后端要求传 { job: { id }, ... }
+    // 保存面试（后端要求结构：{ job: { id }, ... }）
     async saveInterview(applicationId: number, interview: InterviewInfo) {
       try {
         await axios.post(
@@ -181,6 +188,12 @@ export const useApplicationStore = defineStore('application', {
         this.error = err?.response?.data || err?.message || 'Failed to save interview'
         throw err
       }
+    },
+
+    clear() {
+      this.applications = []
+      this.loading = false
+      this.error = null
     },
   },
 })
