@@ -5,10 +5,13 @@ import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
 
 const props = defineProps<{ applicationId: number }>()
+const emit = defineEmits<{ (e: 'upload-resume', jobId: number): void }>()
+
 const applicationStore = useApplicationStore()
 const application = computed((): Application | undefined =>
   applicationStore.applications.find((app: Application) => app.id === props.applicationId),
 )
+
 const showInterviewTracker = ref(false)
 const showJobDescription = ref(false)
 const showEditApplication = ref(false)
@@ -22,49 +25,31 @@ const editApplication = ref<Partial<Application>>({
 })
 
 const interviewReminder = computed(() => {
-  if (!application.value || application.value.status !== 'Interview Scheduled') {
-    return null
-  }
+  if (!application.value || application.value.status !== 'Interview Scheduled') return null
   const interviewDate = application.value.interview?.date
-  if (!interviewDate) {
-    return null
-  }
+  if (!interviewDate) return null
 
   const today = new Date()
-  const todayString =
+  const todayStr =
     today.getFullYear() +
     '-' +
     String(today.getMonth() + 1).padStart(2, '0') +
     '-' +
     String(today.getDate()).padStart(2, '0')
 
-  const interviewDateString = interviewDate
+  if (interviewDate < todayStr) return { message: 'Interview date has passed', isPast: true }
+  if (interviewDate === todayStr) return { message: 'Interview is today!', isToday: true }
 
-  if (interviewDateString < todayString) {
-    return { message: 'Interview date has passed', isPast: true }
-  } else if (interviewDateString === todayString) {
-    return { message: 'Interview is today!', isToday: true }
-  } else {
-    const todayDate = new Date(todayString)
-    const interviewDateObj = new Date(interviewDateString)
-    const timeDiff = interviewDateObj.getTime() - todayDate.getTime()
-    const daysDiff = Math.round(timeDiff / (1000 * 3600 * 24))
-
-    if (daysDiff === 1) {
-      return { message: 'Interview is tomorrow!', isSoon: true }
-    } else {
-      return { message: `Interview in ${daysDiff} days`, dayCount: daysDiff }
-    }
-  }
+  const d1 = new Date(todayStr)
+  const d2 = new Date(interviewDate)
+  const days = Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24))
+  return days === 1
+    ? { message: 'Interview is tomorrow!', isSoon: true }
+    : { message: `Interview in ${days} days`, dayCount: days }
 })
 
-const toggleInterviewTracker = () => {
-  showInterviewTracker.value = !showInterviewTracker.value
-}
-
-const toggleJobDescription = () => {
-  showJobDescription.value = !showJobDescription.value
-}
+const toggleInterviewTracker = () => (showInterviewTracker.value = !showInterviewTracker.value)
+const toggleJobDescription = () => (showJobDescription.value = !showJobDescription.value)
 
 const toggleEditApplication = () => {
   if (!showEditApplication.value && application.value) {
@@ -96,7 +81,6 @@ const cancelEdit = () => {
 <template>
   <div class="job-card">
     <div class="job-info">
-      <!-- Reminder Notification -->
       <div
         v-if="interviewReminder"
         class="interview-reminder"
@@ -116,7 +100,8 @@ const cancelEdit = () => {
     </div>
     <div class="job-actions">
       <button @click="toggleJobDescription">Job Description</button>
-      <button>Upload Resume</button>
+      <!-- 关键改动：把点击事件抛给父组件 -->
+      <button @click="emit('upload-resume', applicationId)">Upload Resume</button>
       <button @click="toggleEditApplication">Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
@@ -132,6 +117,7 @@ const cancelEdit = () => {
       :applicationId="application?.id"
       @close="toggleJobDescription"
     />
+
     <!-- Edit View -->
     <div v-if="showEditApplication" class="edit-overlay">
       <div class="edit-modal">
@@ -179,9 +165,9 @@ const cancelEdit = () => {
 
 <style scoped>
 .job-card {
-  background: #000000;
-  color: #ffffff;
-  padding: 2vw 2vw;
+  background: #000;
+  color: #fff;
+  padding: 2vw;
   border-radius: 10px;
   width: 100%;
   max-width: 400px;
@@ -190,7 +176,7 @@ const cancelEdit = () => {
 }
 .interview-reminder {
   background: #007bff;
-  color: white;
+  color: #fff;
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -208,7 +194,7 @@ const cancelEdit = () => {
 }
 .reminder-soon {
   background: #ffc107;
-  color: #000000;
+  color: #000;
 }
 @keyframes pulse {
   0% {
@@ -233,18 +219,15 @@ const cancelEdit = () => {
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  background-color: #007bff;
-  color: white;
+  background: #007bff;
+  color: #fff;
 }
 .job-actions button:hover {
-  background-color: #0056b3;
+  background: #0056b3;
 }
 .edit-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
@@ -252,15 +235,15 @@ const cancelEdit = () => {
   z-index: 1000;
 }
 .edit-modal {
-  background: rgb(70, 68, 68);
-  padding: 20px;
+  background: #464444;
+  color: #fff;
   border-radius: 8px;
+  padding: 20px;
   width: 400px;
   max-width: 90vw;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  color: white;
 }
 .edit-modal h2 {
   margin-bottom: 20px;
@@ -281,8 +264,7 @@ const cancelEdit = () => {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-family: inherit;
-  font-size: 14px;
+  font: inherit;
   box-sizing: border-box;
 }
 .form-group textarea {
@@ -293,41 +275,5 @@ const cancelEdit = () => {
   gap: 10px;
   justify-content: flex-end;
   margin-top: 20px;
-}
-.modal-actions button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.modal-actions button[type='submit'] {
-  background-color: #007bff;
-  color: white;
-}
-.modal-actions button[type='submit']:hover {
-  background-color: #0056b3;
-}
-.modal-actions button[type='button'] {
-  background-color: #6c757d;
-  color: white;
-}
-.modal-actions button[type='button']:hover {
-  background-color: #545b62;
-}
-@media (max-width: 500px) {
-  .job-card {
-    padding: 4vw 2vw;
-    max-width: 100%;
-    font-size: 0.95rem;
-  }
-  .job-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .edit-modal {
-    width: 95vw;
-    padding: 15px;
-  }
 }
 </style>
