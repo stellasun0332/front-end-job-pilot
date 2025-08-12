@@ -64,7 +64,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-<<<<<<< HEAD
   <!-- Teleport：把弹窗放到 body 顶层，避免被父级 transform 限制 -->
   <teleport to="body">
     <div class="au-overlay" @click.self="close" @keydown.esc="close" tabindex="0">
@@ -127,50 +126,6 @@ onBeforeUnmount(() => {
           </footer>
         </form>
       </div>
-=======
-  <div class="overlay" @click="close">
-    <div class="upload-form" @click.stop>
-      <h2>Add New Application</h2>
-      <form @submit.prevent="submitApplication">
-        <div class="form-group">
-          <label for="id">Your ID:</label>
-          <input id="id" type="number" v-model="form.user.id" required />
-        </div>
-        <div class="form-group">
-          <label for="title">Job Title:</label>
-          <input id="title" type="text" v-model="form.title" required />
-        </div>
-        <div class="form-group">
-          <label for="company">Company:</label>
-          <input id="company" type="text" v-model="form.company" required />
-        </div>
-        <div class="form-group">
-          <label for="jobDescription">Job Description</label>
-          <textarea id="jobDescription" v-model="form.jobDescription" rows="4"></textarea>
-        </div>
-        <div class="form-group">
-          <label for="appliedOn">Applied On:</label>
-          <input id="appliedOn" type="date" v-model="form.dateApplied" required />
-        </div>
-        <div class="form-group">
-          <label for="status">Status:</label>
-          <select id="status" v-model="form.status" required>
-            <option value="Applied">Applied</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Offer Received">Offer Received</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="notes">Notes:</label>
-          <textarea id="notes" v-model="form.notes" rows="4"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="submit">Save</button>
-          <button type="button" @click="close">Cancel</button>
-        </div>
-      </form>
->>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
     </div>
   </teleport>
 </template>
