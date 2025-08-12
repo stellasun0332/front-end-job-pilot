@@ -26,8 +26,14 @@ export type Application = {
   status: string
   notes: string
   jobDescription?: string
+<<<<<<< HEAD
   interview?: InterviewInfo | null
   user?: { id: number; name?: string; email?: string } // 供前端过滤使用
+=======
+  interview?: InterviewInfo
+  resumeUrl?: string
+  resumeFile?: string
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 }
 
 export const useApplicationStore = defineStore('application', {
@@ -43,6 +49,7 @@ export const useApplicationStore = defineStore('application', {
       this.loading = true
       this.error = null
       try {
+<<<<<<< HEAD
         const { data } = await axios.get(JOBS, { headers: authHeaders() })
         const rows: Application[] = Array.isArray(data) ? data : []
 
@@ -54,6 +61,18 @@ export const useApplicationStore = defineStore('application', {
         this.applications = mine
           .map((app) => ({ ...app, interview: null }))
           .sort((a, b) => a.id - b.id)
+=======
+        const response = await axios.get(`${JOBS}`)
+        this.applications = response.data
+          .map((app: Application) => ({
+            ...app,
+            id: app.id,
+            interview: null,
+          }))
+          .sort((a: Application, b: Application) => {
+            return a.id - b.id
+          })
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 
         await this.fetchAllInterviewData()
       } catch (err: any) {

@@ -3,6 +3,7 @@ import { useApplicationStore, type Application } from '@/stores/applicationStore
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
+import ResumeUploadForm from './ResumeUploadForm.vue'
 
 const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
 
@@ -17,9 +18,13 @@ const application = computed((): Application | undefined =>
 const showInterviewTracker = ref(false)
 const showJobDescription = ref(false)
 const showEditApplication = ref(false)
+<<<<<<< HEAD
 const showDeleteConfirm = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
+=======
+const showResumeUpload = ref(false)
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 
 const editApplication = ref<Partial<Application>>({
   title: '',
@@ -69,6 +74,10 @@ const toggleEditApplication = () => {
   showEditApplication.value = !showEditApplication.value
 }
 
+const toggleResumeUpload = () => {
+  showResumeUpload.value = !showResumeUpload.value
+}
+
 const saveEdit = async () => {
   try {
     await applicationStore.updateApplication(props.applicationId, editApplication.value)
@@ -84,6 +93,7 @@ function openDelete() {
   deleteError.value = ''
   showDeleteConfirm.value = true
 }
+<<<<<<< HEAD
 function cancelDelete() {
   showDeleteConfirm.value = false
 }
@@ -140,6 +150,57 @@ watch([showEditApplication, showDeleteConfirm], ([editOpen, delOpen]) => {
 onBeforeUnmount(() => {
   document.body.style.overflow = ''
 })
+=======
+
+const downloadResume = async () => {
+  if (!application.value?.id) {
+    console.error('No application ID available')
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `https://jobpilot-backend-62hx.onrender.com/resumes/download?jobId=${application.value.id}`,
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    // Set default filename to resume.pdf
+    let filename = 'resume.pdf'
+
+    // Get the filename from the Content-Disposition header if available (optional)
+    const contentDisposition = response.headers.get('Content-Disposition')
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Convert response to blob
+    const blob = await response.blob()
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+
+    // Trigger download
+    document.body.appendChild(link)
+    link.click()
+
+    // Cleanup
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error downloading resume:', error)
+    // You might want to show a user-friendly error message here
+  }
+}
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 </script>
 
 <template>
@@ -170,6 +231,7 @@ onBeforeUnmount(() => {
       <div>
         Status: <span>{{ application?.status }}</span>
       </div>
+<<<<<<< HEAD
     </div>
 
     <p v-if="application?.notes" class="jp-notes">{{ application?.notes }}</p>
@@ -187,6 +249,22 @@ onBeforeUnmount(() => {
       <button class="btn primary" @click="toggleEditApplication">Edit</button>
       <button class="btn primary" @click="toggleInterviewTracker">Interview Tracker</button>
       <button class="btn primary" @click="openDelete">Delete</button>
+=======
+      <strong>{{ application?.title }}</strong>
+      <p>Company: {{ application?.company }}</p>
+      <p>Applied on: {{ application?.dateApplied }}</p>
+      <p>Status: {{ application?.status }}</p>
+      <p>Notes: {{ application?.notes }}</p>
+      <div v-if="application?.resumeFile" class="resume-link">
+        <button @click="downloadResume" class="download-resume">Download Resume</button>
+      </div>
+    </div>
+    <div class="job-actions">
+      <button @click="toggleJobDescription">Job Description</button>
+      <button @click="toggleResumeUpload">Upload Resume</button>
+      <button @click="toggleEditApplication">Edit</button>
+      <button @click="toggleInterviewTracker">Interview Tracker</button>
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
     </div>
 
     <!-- 子弹窗 -->
@@ -202,6 +280,7 @@ onBeforeUnmount(() => {
       :applicationId="application?.id"
       @close="toggleJobDescription"
     />
+<<<<<<< HEAD
 
     <!-- 编辑弹窗 -->
     <teleport to="body">
@@ -256,6 +335,55 @@ onBeforeUnmount(() => {
             </div>
           </form>
         </div>
+=======
+    <ResumeUploadForm
+      v-if="application"
+      :isVisible="showResumeUpload"
+      :applicationId="application?.id"
+      @close="toggleResumeUpload"
+    />
+    <!-- Edit View -->
+    <div v-if="showEditApplication" class="edit-overlay">
+      <div class="edit-modal">
+        <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
+        <h2>Edit Application</h2>
+        <form @submit.prevent="saveEdit">
+          <div class="form-group">
+            <label for="editTitle">Job Title:</label>
+            <input id="editTitle" type="text" v-model="editApplication.title" required />
+          </div>
+          <div class="form-group">
+            <label for="editCompany">Company:</label>
+            <input id="editCompany" type="text" v-model="editApplication.company" required />
+          </div>
+          <div class="form-group">
+            <label for="editDateApplied">Applied On:</label>
+            <input
+              id="editDateApplied"
+              type="date"
+              v-model="editApplication.dateApplied"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="editStatus">Status:</label>
+            <select id="editStatus" v-model="editApplication.status" required>
+              <option value="Applied">Applied</option>
+              <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Offer Received">Offer Received</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editNotes">Notes:</label>
+            <textarea id="editNotes" v-model="editApplication.notes" rows="4"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Save</button>
+            <button type="button" @click="cancelEdit">Cancel</button>
+          </div>
+        </form>
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
       </div>
     </teleport>
 
@@ -375,12 +503,39 @@ onBeforeUnmount(() => {
     opacity: 1;
   }
 }
+<<<<<<< HEAD
 
 .jp-title {
   font-size: 20px;
   font-weight: 850;
   margin: 4px 0 10px;
   color: #fff;
+=======
+.resume-link {
+  margin-top: 10px;
+}
+.download-resume {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: #ffffff;
+  text-decoration: none;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.download-resume:hover {
+  background-color: #218838;
+}
+.job-actions {
+  margin-top: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 }
 .jp-meta {
   display: grid;

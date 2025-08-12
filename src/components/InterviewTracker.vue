@@ -40,6 +40,13 @@ async function saveInterview() {
       interviewer: editInterview.value.interviewer,
       prepNotes: editInterview.value.prepNotes,
     })
+
+    if (editInterview.value.date && application.value) {
+      await applicationStore.updateApplication(props.applicationId, {
+        ...application.value,
+        status: 'Interview Scheduled',
+      })
+    }
     editMode.value = false
   } catch (err) {
     console.error('Error saving interview:', err)
@@ -76,6 +83,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+<<<<<<< HEAD
   <!-- Teleport: 避免被父级 transform 限制 -->
   <teleport to="body">
     <div v-if="isVisible" class="it-overlay" @click.self="close" @keydown.esc="close" tabindex="0">
@@ -111,6 +119,28 @@ onBeforeUnmount(() => {
           <div class="form-row">
             <label for="interviewDate">Interview Date</label>
             <input id="interviewDate" type="date" v-model="editInterview.date" />
+=======
+  <div v-if="isVisible" class="interview-tracker-overlay">
+    <div class="interview-tracker-modal">
+      <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
+      <h2>Interview Details</h2>
+      <div v-if="!editMode">
+        <div class="interview-content">
+          <p><strong>Date:</strong> {{ interview.date || 'Not set' }}</p>
+          <p><strong>Interviewer:</strong> {{ interview.interviewer || 'Not set' }}</p>
+          <p><strong>Prep Notes:</strong> {{ interview.prepNotes || 'None' }}</p>
+        </div>
+        <div class="modal-actions">
+          <button @click="editMode = true">Edit Interview Info</button>
+          <button @click="close">Close</button>
+        </div>
+      </div>
+      <div v-else>
+        <div class="edit-content">
+          <div class="form-group">
+            <label for="interviewDate">Interview Date:</label>
+            <input type="date" v-model="editInterview.date" id="interviewDate" />
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
           </div>
 
           <div class="form-row">

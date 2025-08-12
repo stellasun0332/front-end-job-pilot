@@ -63,6 +63,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+<<<<<<< HEAD
   <!-- 关键：把弹窗传送到 body，避免被卡片的 transform 限制 -->
   <teleport to="body">
     <div v-if="isVisible" class="jd-overlay" @keydown.esc="close" tabindex="0">
@@ -71,6 +72,38 @@ onBeforeUnmount(() => {
           <h2>Job Description</h2>
           <button class="icon-btn" aria-label="Close" @click="close">✕</button>
         </header>
+=======
+  <div v-if="isVisible" class="job-description-overlay">
+    <div class="job-description-modal">
+      <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
+      <h2>Job Description</h2>
+      <div v-if="!editMode" class="description-view">
+        <div class="description-content">
+          <p>{{ jobDescription }}</p>
+        </div>
+        <div class="modal-actions">
+          <button @click="startEdit">Edit Description</button>
+          <button @click="analyzeDescription">Analyze Description</button>
+          <button @click="close">Close</button>
+        </div>
+      </div>
+      <div v-else class="description-edit">
+        <div class="edit-content">
+          <label for="jobDescriptionEdit">Job Description:</label>
+          <textarea
+            id="jobDescriptionEdit"
+            v-model="editDescription"
+            placeholder="Enter job description here"
+            rows="10"
+          ></textarea>
+        </div>
+        <div class="modal-actions">
+          <button @click="saveDescription">Save</button>
+          <button @click="cancelEdit">Cancel</button>
+        </div>
+      </div>
+    </div>
+>>>>>>> ef381848015c9f954c0f727bafa167debbe11c51
 
         <section v-if="!editMode" class="jd-view">
           <div class="jd-content">
