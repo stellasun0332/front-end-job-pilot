@@ -136,6 +136,9 @@ function onResumeUploaded(p: { jobId: number; url: string }) {
     <ResumeUploadForm
       v-if="showResumeForm && selectedJobId !== null && auth.isAuthenticated"
       :job-id="selectedJobId!"
+      :application="
+        applicationStore.applications.find((app: Application) => app.id === selectedJobId)
+      "
       @uploaded="onResumeUploaded"
       @close="closeResumeForm"
     />

@@ -3,7 +3,10 @@ import { ref, watch, onBeforeUnmount } from 'vue'
 
 const API_BASE = 'https://jobpilot-backend-62hx.onrender.com'
 
-const props = defineProps<{ jobId: number }>()
+const props = defineProps<{
+  jobId: number
+  application?: { title: string; company: string }
+}>()
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'uploaded', p: { jobId: number; url: string }): void
@@ -13,15 +16,57 @@ const file = ref<File | null>(null)
 const uploading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
+const isDragOver = ref(false)
 
 function onPick(e: Event) {
   file.value = (e.target as HTMLInputElement).files?.[0] ?? null
   errorMsg.value = ''
   successMsg.value = ''
 }
+
 function close() {
   document.body.style.overflow = '' // 恢复滚动
   emit('close')
+}
+
+// Drag and drop handlers
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = true
+}
+
+function onDragLeave(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = false
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = false
+
+  const files = e.dataTransfer?.files
+  if (files && files.length > 0) {
+    const droppedFile = files[0]
+
+    // Check file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]
+    const allowedExtensions = ['.pdf', '.doc', '.docx']
+
+    if (
+      allowedTypes.includes(droppedFile.type) ||
+      allowedExtensions.some((ext) => droppedFile.name.toLowerCase().endsWith(ext))
+    ) {
+      file.value = droppedFile
+      errorMsg.value = ''
+      successMsg.value = ''
+    } else {
+      errorMsg.value = 'Please select a valid file (.pdf .doc .docx).'
+    }
+  }
 }
 
 async function upload() {
@@ -79,19 +124,40 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="ru-body">
-          <p class="muted">Job ID: {{ props.jobId }}</p>
+          <p class="muted">{{ application?.title }} - {{ application?.company }}</p>
 
-          <!-- 自定义文件选择器 -->
-          <label class="file-picker">
+          <!-- Drag and drop zone -->
+          <div
+            class="drop-zone"
+            :class="{ 'drag-over': isDragOver }"
+            @dragover="onDragOver"
+            @dragleave="onDragLeave"
+            @drop="onDrop"
+          >
+            <div class="drop-zone-content">
+              <div class="drop-icon">📄</div>
+              <p class="drop-text">
+                <strong>Drop your resume here</strong><br />
+                or click to browse files
+              </p>
+              <p class="drop-formats">Supports PDF, DOC, DOCX</p>
+            </div>
+
+            <!-- Hidden file input -->
             <input
               class="file-input"
               type="file"
               accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               @change="onPick"
             />
-            <span class="file-button">Choose File</span>
-            <span class="file-name">{{ file?.name || 'No file chosen' }}</span>
-          </label>
+          </div>
+
+          <!-- Show selected file -->
+          <div v-if="file" class="selected-file">
+            <span class="file-icon">📄</span>
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">({{ Math.round(file.size / 1024) }}KB)</span>
+          </div>
 
           <p v-if="errorMsg" class="msg error">{{ errorMsg }}</p>
           <p v-if="successMsg" class="msg success">{{ successMsg }}</p>
@@ -181,41 +247,96 @@ onBeforeUnmount(() => {
   color: #9fb0d0;
 }
 
-/* 自定义文件选择器 */
-.file-picker {
+/* Drag and drop zone */
+.drop-zone {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  background: #1e2430;
-  border: 1px solid #313848;
-  color: #eaf0ff;
-  padding: 12px 14px;
-  border-radius: 12px;
-}
-.file-input {
-  display: none;
-} /* 隐藏原生 input */
-.file-button {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 800;
+  min-height: 160px;
+  padding: 32px 24px;
+  background: #1e2430;
+  border: 2px dashed #313848;
+  border-radius: 12px;
   cursor: pointer;
-  background: linear-gradient(180deg, #5aa3ff 0%, #3b7ce6 100%);
-  border: 1px solid rgba(90, 163, 255, 0.5);
-  box-shadow: 0 10px 26px rgba(90, 163, 255, 0.28);
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
-.file-picker:hover .file-button {
-  transform: translateY(-1px);
+
+.drop-zone:hover {
+  border-color: #4a90e2;
+  background: #242a37;
 }
+
+.drop-zone.drag-over {
+  border-color: #5aa3ff;
+  background: #2a3441;
+  transform: scale(1.02);
+}
+
+.drop-zone-content {
+  text-align: center;
+  pointer-events: none;
+}
+
+.drop-icon {
+  font-size: 42px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.drop-text {
+  margin: 0 0 12px;
+  color: #eaf0ff;
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+.drop-formats {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb0d0;
+  opacity: 0.8;
+}
+
+.file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Selected file display */
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #242a35;
+  border: 1px solid #343b47;
+  border-radius: 12px;
+  color: #eaf0ff;
+}
+
+.file-icon {
+  font-size: 20px;
+  opacity: 0.8;
+}
+
 .file-name {
-  opacity: 0.9;
+  flex: 1;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #9fb0d0;
+  opacity: 0.8;
 }
 
 /* 成功/错误信息 */
@@ -284,6 +405,17 @@ onBeforeUnmount(() => {
   }
   .btn {
     padding: 10px 14px;
+  }
+  .drop-zone {
+    min-height: 140px;
+    padding: 28px 20px;
+  }
+  .drop-icon {
+    font-size: 36px;
+    margin-bottom: 14px;
+  }
+  .drop-text {
+    font-size: 15px;
   }
 }
 </style>

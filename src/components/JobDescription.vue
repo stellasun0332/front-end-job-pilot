@@ -69,6 +69,7 @@ onBeforeUnmount(() => {
       <div class="jd-modal">
         <header class="jd-header">
           <h2>Job Description</h2>
+          <p>{{ application?.title }} - {{ application?.company }}</p>
           <button class="icon-btn" aria-label="Close" @click="close">✕</button>
         </header>
 
