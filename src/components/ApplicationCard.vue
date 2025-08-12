@@ -3,6 +3,7 @@ import { useApplicationStore, type Application } from '@/stores/applicationStore
 import { ref, computed } from 'vue'
 import InterviewTracker from './InterviewTracker.vue'
 import JobDescription from './JobDescription.vue'
+import ResumeUploadForm from './ResumeUploadForm.vue'
 
 const props = defineProps<{ applicationId: number }>()
 const applicationStore = useApplicationStore()
@@ -12,6 +13,7 @@ const application = computed((): Application | undefined =>
 const showInterviewTracker = ref(false)
 const showJobDescription = ref(false)
 const showEditApplication = ref(false)
+const showResumeUpload = ref(false)
 
 const editApplication = ref<Partial<Application>>({
   title: '',
@@ -79,6 +81,10 @@ const toggleEditApplication = () => {
   showEditApplication.value = !showEditApplication.value
 }
 
+const toggleResumeUpload = () => {
+  showResumeUpload.value = !showResumeUpload.value
+}
+
 const saveEdit = async () => {
   try {
     await applicationStore.updateApplication(props.applicationId, editApplication.value)
@@ -90,6 +96,53 @@ const saveEdit = async () => {
 
 const cancelEdit = () => {
   showEditApplication.value = false
+}
+
+const downloadResume = async () => {
+  if (!application.value?.id) {
+    console.error('No application ID available')
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/resumes/download?jobId=${application.value.id}`)
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    // Set default filename to resume.pdf
+    let filename = 'resume.pdf'
+
+    // Get the filename from the Content-Disposition header if available (optional)
+    const contentDisposition = response.headers.get('Content-Disposition')
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    // Convert response to blob
+    const blob = await response.blob()
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+
+    // Trigger download
+    document.body.appendChild(link)
+    link.click()
+
+    // Cleanup
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error downloading resume:', error)
+    // You might want to show a user-friendly error message here
+  }
 }
 </script>
 
@@ -113,10 +166,13 @@ const cancelEdit = () => {
       <p>Applied on: {{ application?.dateApplied }}</p>
       <p>Status: {{ application?.status }}</p>
       <p>Notes: {{ application?.notes }}</p>
+      <div v-if="application?.resumeFile" class="resume-link">
+        <button @click="downloadResume" class="download-resume">Download Resume</button>
+      </div>
     </div>
     <div class="job-actions">
       <button @click="toggleJobDescription">Job Description</button>
-      <button>Upload Resume</button>
+      <button @click="toggleResumeUpload">Upload Resume</button>
       <button @click="toggleEditApplication">Edit</button>
       <button @click="toggleInterviewTracker">Interview Tracker</button>
     </div>
@@ -132,9 +188,16 @@ const cancelEdit = () => {
       :applicationId="application?.id"
       @close="toggleJobDescription"
     />
+    <ResumeUploadForm
+      v-if="application"
+      :isVisible="showResumeUpload"
+      :applicationId="application?.id"
+      @close="toggleResumeUpload"
+    />
     <!-- Edit View -->
     <div v-if="showEditApplication" class="edit-overlay">
       <div class="edit-modal">
+        <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
         <h2>Edit Application</h2>
         <form @submit.prevent="saveEdit">
           <div class="form-group">
@@ -220,6 +283,25 @@ const cancelEdit = () => {
   100% {
     opacity: 1;
   }
+}
+.resume-link {
+  margin-top: 10px;
+}
+.download-resume {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: #ffffff;
+  text-decoration: none;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.download-resume:hover {
+  background-color: #218838;
 }
 .job-actions {
   margin-top: 15px;

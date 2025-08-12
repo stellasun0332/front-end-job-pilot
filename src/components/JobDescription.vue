@@ -62,6 +62,7 @@ const closeAnalysis = () => {
 <template>
   <div v-if="isVisible" class="job-description-overlay">
     <div class="job-description-modal">
+      <p class="application-title">{{ application?.title }} - {{ application?.company }}</p>
       <h2>Job Description</h2>
       <div v-if="!editMode" class="description-view">
         <div class="description-content">

@@ -20,6 +20,8 @@ export type Application = {
   notes: string
   jobDescription?: string
   interview?: InterviewInfo
+  resumeUrl?: string
+  resumeFile?: string
 }
 
 export const useApplicationStore = defineStore('application', {
@@ -33,7 +35,6 @@ export const useApplicationStore = defineStore('application', {
       this.loading = true
       this.error = null
       try {
-        //! CURRENTLY SET TO LOCAL POSTGRESQL DB ROUTE FOR TESTING
         const response = await axios.get(`${JOBS}`)
         this.applications = response.data
           .map((app: Application) => ({
