@@ -49,7 +49,7 @@ export const useApplicationStore = defineStore('application', {
         // 仅前端过滤：只显示当前登录用户的 jobs
         const auth = useAuthStore()
         const myId = auth.user?.id
-        const mine = myId ? rows.filter(j => j?.user?.id === myId) : rows
+        const mine = myId ? rows.filter((j) => j?.user?.id === myId) : rows
 
         this.applications = mine
           .map((app) => ({ ...app, interview: null }))
@@ -115,23 +115,17 @@ export const useApplicationStore = defineStore('application', {
         const { data } = await axios.get(INTERVIEWS, { headers: authHeaders() })
         const interviews = Array.isArray(data) ? data : []
 
-        // 仅对当前 applications 的 id 合并
-        const idSet = new Set(this.applications.map(a => a.id))
-        interviews.forEach((iv: any) => {
-          const jid = iv?.job?.id ?? iv?.applicationId
-          if (!idSet.has(jid)) return
-          const app = this.applications.find(a => a.id === jid)
-          if (app) {
-            app.interview = {
-              job: jid,
-              date: iv.date,
-              interviewer: iv.interviewer,
-              prepNotes: iv.prepNotes,
-            }
-          }
+        // For each application, find the latest interview by jobId
+        this.applications.forEach((app) => {
+          // Find all interviews for this application
+          const matches = interviews.filter((iv) => iv.jobId === app.id)
+          // If there are multiple, pick the latest by date (optional)
+          const latest =
+            matches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] ||
+            null
+          app.interview = latest
         })
       } catch (err: any) {
-        // 没有面试记录不算错误，避免打断页面
         console.warn('Fetch interviews skipped:', err?.message || err)
       }
     },
